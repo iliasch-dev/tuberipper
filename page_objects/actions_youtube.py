@@ -32,6 +32,9 @@ class ActionYoutube:
         self.home_page.navigate_to_youtube()
         self.home_page.click_reject_button()
         self.home_page.navigate_to_channel_page("@RetropolisGreece",Type.STREAM.value)
+
+        utils.scrap_audio("https://www.youtube.com/watch?v=3Bwr3eZ8Dsg","@VG24")
+
         time.sleep(10)
         
 

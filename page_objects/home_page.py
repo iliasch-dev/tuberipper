@@ -17,27 +17,59 @@ class HomePage:
         self.driver = driver
         self.db_conn = db_conn
 
-        self.login_button_locator = (By.CSS_SELECTOR, "div[data-test-id='simple-login-button']")
-        self.unath_header_logo_locator = (By.CSS_SELECTOR, "div[data-test-id='unauth-header-logo']")
+        self.reject_cookies_button = (By.CSS_SELECTOR, "div.yt-spec-button-shape-next__button-text-content span[role='text']")
+        self.cookies_modal_title = (By.CSS_SELECTOR, "yt-formatted-string.style-scope.ytd-consent-bump-v2-lightbox")
 
     def is_displayed(self):
         try:  
-            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.login_button_locator))
-            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.unath_header_logo_locator))         
-            self.logger.info("Navigated to Youtube Homepage")
+            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.reject_cookies_button))
+            self.logger.info("Navigated to Youtube Homepage as anonymous user")
             return True
         except Exception as e:
             self.logger.error(f"Error displaying Youtube page: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_pinterest_homepage_display_failed.png")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_display_failed.png")
             return False
+        
+    def navigate_to_youtube(self):
+        url = self.config["YOUTUBE_URL"]
+        self.logger.info(f"Accessing Youtube url:{url}" )
+        try: 
+            self.driver.get(url)
+            self.is_cookies_modal_displayed()
+        except Exception as e: 
+            self.logger.error(f"Error navigating to Youtube: {e}") 
+            
         
     def navigate_to_channel_page(self,channel,type):      
         url = f"{self.config["YOUTUBE_URL"]}/{channel}/{type}"
-        self.logger.info(f"Accessing Youtube url:{url}" )
+        self.logger.info(f"Accessing Youtube channel url:{url}" )
         try: 
             self.driver.get(url)
             self.is_displayed()
         except Exception as e: 
             self.logger.error(f"Error navigating to Youtube: {e}") 
 
+
+    def is_cookies_modal_displayed(self):
+        try:  
+            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.reject_cookies_button))
+            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.cookies_modal_title))
+            self.logger.info(f"Cookies modal displayed" )
+            return True    
+        except Exception as e:
+            self.logger.error(f"Error displaying Cookies modal: {e}")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_cookies_modal_failed.png")
+            return False
+        
+
+    def click_reject_button(self):
+        self.logger.info("Clicking Reject cookies button")
+        reject_button = WebDriverWait(self.driver, self.driver_wait_sec).until(EC.element_to_be_clickable(self.reject_cookies_button))  
+        utils.highlight_element(self.driver, reject_button)
+        try: 
+            reject_button.click()
+            self.is_displayed()
+        except Exception as e: 
+            self.logger.error(f"Error navigating to Login Modal: {e}")
+        utils.randomSleep(Speed.FAST)
 

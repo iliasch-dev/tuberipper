@@ -18,23 +18,21 @@ class ActionYoutube:
     driver_wait_sec = config["WEBDRIVER_TIMEOUT"]
     screenshot_path = config["SCREENCAP_PATH"]
 
-    def __init__(self, driver,db_conn):
-        self.logger = logging.getLogger(__name__) 
-        self.logger.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s -  BOT - %(levelname)s: %(message)s')
-        file_handler = logging.FileHandler('bot.log')
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
-        self.logger.propagate = False
+    def __init__(self, logger, driver,db_conn):
 
         self.driver = driver
         self.db_conn = db_conn
+        self.logger = logger
 
-        self.home_page = HomePage(self.logger,driver,db_conn)
+        self.home_page = HomePage(logger,driver,db_conn)
 
 
     def scrap_video_audio(self): 
+        self.logger.info("Looking for videos to audio-scrap")
+        self.home_page.navigate_to_youtube()
+        self.home_page.click_reject_button()
         self.home_page.navigate_to_channel_page("@RetropolisGreece",Type.STREAM.value)
         time.sleep(10)
+        
 
    

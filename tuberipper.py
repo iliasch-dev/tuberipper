@@ -63,7 +63,7 @@ def main():
   
     #business as usual
     # x_actions = ActionX(driver,db_conn,llm_clients) 
-    youtube_actions = ActionYoutube(driver,db_conn) 
+    youtube_actions = ActionYoutube(logger,driver,db_conn) 
     youtube_actions.scrap_video_audio()
 
     # x_actions.login()

@@ -19,7 +19,7 @@ import emoji
 import tempfile
 import io
 
-
+from enums import Speed
 
 def load_config(filename):
     with open(filename, "r") as file:

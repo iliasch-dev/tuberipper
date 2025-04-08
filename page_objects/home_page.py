@@ -17,7 +17,7 @@ class HomePage:
         self.driver = driver
         self.db_conn = db_conn
 
-        self.reject_cookies_button = (By.CSS_SELECTOR, "div.yt-spec-button-shape-next__button-text-content span[role='text']")
+        self.reject_cookies_button = (By.XPATH, '//button[.//span[text()="Reject all"]]')
         self.cookies_modal_title = (By.CSS_SELECTOR, "yt-formatted-string.style-scope.ytd-consent-bump-v2-lightbox")
 
     def is_displayed(self):
@@ -45,7 +45,6 @@ class HomePage:
         self.logger.info(f"Accessing Youtube channel url:{url}" )
         try: 
             self.driver.get(url)
-            self.is_displayed()
         except Exception as e: 
             self.logger.error(f"Error navigating to Youtube: {e}") 
 
@@ -53,7 +52,7 @@ class HomePage:
     def is_cookies_modal_displayed(self):
         try:  
             WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.reject_cookies_button))
-            WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.cookies_modal_title))
+            #WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.cookies_modal_title))
             self.logger.info(f"Cookies modal displayed" )
             return True    
         except Exception as e:

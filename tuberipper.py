@@ -61,13 +61,9 @@ def main():
     logger.info(f"Selenium version: {selenium.__version__}")
     logger.info("Chromedriver version: %s", capabilities['chrome']['chromedriverVersion'])
   
-    #business as usual
-    # x_actions = ActionX(driver,db_conn,llm_clients) 
     youtube_actions = ActionYoutube(logger,driver,db_conn) 
     youtube_actions.scrap_video_audio()
 
-    # x_actions.login()
-    # x_actions.post()
 
     #exit actions
     db_conn.close()

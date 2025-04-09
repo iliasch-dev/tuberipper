@@ -106,11 +106,18 @@ def download_thumbnail(url):
     image_data = BytesIO(response.content)
     return image_data
 
-def embed_thumbnail(mp3_file, image_data):
+def embed_thumbnail(mp3_file, image_data, title=None, album=None, artist=None):
     audio_file = eyed3.load(mp3_file)
     image_data.seek(0)  # Ensure the image data pointer is at the start
     audio_file.tag.images.set(3, image_data.read(), 'image/jpeg')
+    if title:
+        audio_file.tag.title = title
+    if album:
+        audio_file.tag.album = album
+    if artist:
+        audio_file.tag.artist = artist
     audio_file.tag.save()
+
 
 def get_audio_duration_ffprobe(filename):
     cmd = [
@@ -180,7 +187,7 @@ def scrap_audio(url,channel,yldlp_client):
             except Exception as e:
                 logging.error(f"Error scrapping youtube video {e}")
         thumbnail_image = download_thumbnail(video_thumbnail_url)
-        embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image)
+        embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image, video_title,video_title,channel)
         audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir,audio_filename_ext))
         logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
         # Step 6: Compare durations

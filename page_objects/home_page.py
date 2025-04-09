@@ -10,8 +10,8 @@ import re
 class HomePage:
 
     config = utils.load_config("config.json")
-    driver_wait_sec = config["WEBDRIVER_TIMEOUT"]
-    screenshot_path = config["SCREENCAP_PATH"]
+    driver_wait_sec = config['WEBDRIVER_TIMEOUT']
+    screenshot_path = config['SCREENCAP_PATH']
 
     def __init__(self, logger, driver,db_conn):
         self.logger = logger
@@ -37,7 +37,7 @@ class HomePage:
             return False
         
     def navigate_to_youtube(self):
-        url = self.config["YOUTUBE_URL"]
+        url = self.config['YOUTUBE_URL']
         self.logger.info(f"Accessing Youtube url:{url}" )
         try: 
             self.driver.get(url)
@@ -48,7 +48,7 @@ class HomePage:
     
 
     def navigate_to_channel_page(self,channel,type):      
-        url = f"{self.config["YOUTUBE_URL"]}{channel}/{type}"
+        url = f"{self.config['YOUTUBE_URL']}{channel}/{type}"
         self.logger.info(f"Accessing Youtube channel url:{url}" )
         try: 
             self.driver.get(url)

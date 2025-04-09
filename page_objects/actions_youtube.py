@@ -6,7 +6,9 @@ from selenium.common.exceptions import StaleElementReferenceException
 
 from enums import Speed
 from enums import Type
+from enums import Ytl_Dlp_Clients
 from enums import Format
+import random
 import logging
 import utils
 import os
@@ -33,10 +35,11 @@ class ActionYoutube:
         self.logger.info("Looking for videos to audio-scrap")
         self.home_page.navigate_to_youtube()
         self.home_page.click_reject_button()
-
         channels = db_psql_client.get_all_channels(self.db_conn)
+        ytl_dlp_client = random.choice(list(Ytl_Dlp_Clients)).value
+        logging.info(f"Picking YT-DLP client: {ytl_dlp_client}")
         if channels is not None:
-            for channel in channels:
+            for channel in channels:      
                 if(channel['scrap_streams']):
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.STREAM.value)
                     self.home_page.is_live_tab_dispalyed()
@@ -44,9 +47,10 @@ class ActionYoutube:
                     self.home_page.click_first_thumbnail()
                     if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
                         url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
-                        result = utils.scrap_audio(url,channel['channel'])
+                        result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                    
                         if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
-                            logging.info("Saving in DB")
+                            logging.info("Saving rip data in DB")
+                            db_psql_client.insert_rip_record(self.db_conn, channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "STREAM", result['video_thumbnail_url'],video_id,result['audio_filename'])
                 if(channel['scrap_videos']):           
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()
@@ -54,12 +58,14 @@ class ActionYoutube:
                     self.home_page.click_first_thumbnail()
                     if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
                         url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
-                        result = utils.scrap_audio(url,channel['channel'])
+                        result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                     
                         if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
-                            logging.info("Saving in DB")
+                            logging.info("Saving rip data in DB")
+                            db_psql_client.insert_rip_record(self.db_conn,  channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "VIDEO", result['video_thumbnail_url'],video_id,result['audio_filename'])
+
                 time.sleep(5)
         else:
-            print("No channels found or an error occurred.")
+            logging.error("No channels found or an error occurred.")
         
 
    

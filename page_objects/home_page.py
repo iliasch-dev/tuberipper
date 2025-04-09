@@ -24,6 +24,7 @@ class HomePage:
         self.live_tab = (By.XPATH, "//div[contains(@class, 'yt-tab-shape-wiz__tab') and contains(@class, 'yt-tab-shape-wiz__tab--tab-selected') and text()='Live']")
         self.videos_tab = (By.XPATH, "//div[contains(@class, 'yt-tab-shape-wiz__tab') and contains(@class, 'yt-tab-shape-wiz__tab--tab-selected') and text()='Videos']")
         self.first_column_row_thumbnail = (By.CSS_SELECTOR, "yt-image img.yt-core-image")
+        self.sign_in_button = (By.CSS_SELECTOR, 'span[role="text"]:contains("Sign in")')
 
     def is_displayed(self):
         try:  
@@ -44,9 +45,10 @@ class HomePage:
         except Exception as e: 
             self.logger.error(f"Error navigating to Youtube: {e}") 
             
-        
+    
+
     def navigate_to_channel_page(self,channel,type):      
-        url = f"{self.config["YOUTUBE_URL"]}/{channel}/{type}"
+        url = f"{self.config["YOUTUBE_URL"]}{channel}/{type}"
         self.logger.info(f"Accessing Youtube channel url:{url}" )
         try: 
             self.driver.get(url)
@@ -94,9 +96,9 @@ class HomePage:
             match = re.search(r'/vi/([^/]+)/', img_src)
             if match:
                 video_id = match.group(1)
-                print("YouTube Video ID:", video_id)
+                self.logger.info("YouTube Video ID:", video_id)
             else:
-                print("Video ID not found in src:", img_src)
+                self.logger.error("Video ID not found in src:", img_src)
             self.logger.info(f"First Thumbnail displayed" )
             return video_id    
         except Exception as e:
@@ -123,18 +125,18 @@ class HomePage:
             reject_button.click()
             self.is_displayed()
         except Exception as e: 
-            self.logger.error(f"Error navigating to Login Modal: {e}")
+            self.logger.error(f"Error clicking Accept button: {e}")
         utils.randomSleep(Speed.FAST)
 
 
     def click_reject_button(self):
         self.logger.info("Clicking Reject cookies button")
-        reject_button = WebDriverWait(self.driver, self.driver_wait_sec).until(EC.element_to_be_clickable(self.reject_cookies_button))  
-        utils.highlight_element(self.driver, reject_button)
         try: 
+            reject_button = WebDriverWait(self.driver, self.driver_wait_sec).until(EC.element_to_be_clickable(self.reject_cookies_button))  
+            utils.highlight_element(self.driver, reject_button)      
             reject_button.click()
             self.is_displayed()
         except Exception as e: 
-            self.logger.error(f"Error navigating to Login Modal: {e}")
+            self.logger.error(f"Error clicking Reject button: {e}")
         utils.randomSleep(Speed.FAST)
 

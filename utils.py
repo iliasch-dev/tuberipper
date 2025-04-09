@@ -17,9 +17,13 @@ from pytube import YouTube
 from enums import Speed
 from enums import Ytl_Dlp_Clients
 
+
 def load_config(filename):
     with open(filename, "r") as file:
         return json.load(file)
+    
+config = load_config("config.json")
+
 
 def staticSleep(waitTime):
     logging.info(f"Sleeping {waitTime}s")
@@ -120,59 +124,84 @@ def get_audio_duration_ffprobe(filename):
     duration = json.loads(result.stdout)['format']['duration']
     return int(float(duration))
 
+
+def grab_video_info(url):
+    ydl_opts_info = {}
+    video_title=""
+    video_duration=""
+    video_thumbnail_url=""
+    try:
+         with yt_dlp.YoutubeDL(ydl_opts_info) as ydl: 
+            info = ydl.extract_info(url, download=False)
+            video_title = info.get('title')  # Video title
+            video_title = video_title.replace("/", " ").replace("\\", " ").replace("€", "e")
+            video_duration = info.get('duration')  # Duration in seconds
+            video_thumbnail_url = info.get('thumbnail')  # Thumbnail URL
+            logging.info(f"Video title: {video_title}")
+            logging.info(f"Original video duration: {video_duration} seconds")
+            logging.info(f"Thumbnail URL: {video_thumbnail_url}")
+    except Exception as e:
+            logging.error(f"Error extracting information from video: {e}")
+    return video_title,video_duration, video_thumbnail_url
+        
+
+
 def scrap_audio(url,channel,yldlp_client):
     # Step 1: Get the original video duration, title, and thumbnail
-    ydl_opts_info = {}
-    with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
-        info = ydl.extract_info(url, download=False)
-        video_title = info.get('title')  # Video title
-        video_title = video_title.replace("/", "|").replace("\\", "|")
-        video_duration = info.get('duration')  # Duration in seconds
-        video_thumbnail_url = info.get('thumbnail')  # Thumbnail URL
-        logging.info(f"Video title: {video_title}")
-        logging.info(f"Original video duration: {video_duration} seconds")
-        logging.info(f"Thumbnail URL: {video_thumbnail_url}")
-    logging.info("Converting video to mp3 file")
-    scraps_dir = "scraps"
-    if not os.path.exists(scraps_dir):
-        os.makedirs(scraps_dir)
-        logging.info(f"Directory '{scraps_dir}' created.")
-    # Step 2: Download and convert to mp3
-    audio_filename = f"{channel}_{video_title}_{timestamp()}"
-    audio_filename_ext = f"{channel}_{video_title}_{timestamp()}.mp3"
-    ydl_opts_download = {
-        'format': 'bestaudio/best',
-        'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-         'extractor_args': {
-        'youtube': {
-            'client': [yldlp_client]  # or 'web', 'tvhtml5', 'ios', etc.
-            }
-         },
-        'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
-        'quiet': True  # Optional: suppress yt-dlp output
-    }
-    with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
-        ydl.download([url])
-    thumbnail_image = download_thumbnail(video_thumbnail_url)
-    embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image)
-    audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir,audio_filename_ext))
-    logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
-    # Step 6: Compare durations
-    if video_duration == audio_duration:
-        logging.info("Durations match!")
-        return {
-            "video_title": video_title,
-            "video_duration": video_duration,
-            "video_thumbnail_url": video_thumbnail_url,
-            "audio_filename": audio_filename_ext
+    video_title,video_duration, video_thumbnail_url = grab_video_info(url)
+    if video_title!="":
+        logging.info("Converting video to mp3 file")
+        scraps_dir =  config["RIPS_PATH"]
+        if not os.path.exists(scraps_dir):
+            os.makedirs(scraps_dir)
+            logging.info(f"Directory '{scraps_dir}' created.")
+        # Step 2: Download and convert to mp3
+        audio_filename = f"{channel}_{video_title}_{timestamp()}"
+        audio_filename_ext = f"{channel}_{video_title}_{timestamp()}.mp3"
+        ydl_opts_download = {
+            'format': 'bestaudio/best',
+            'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'extractor_args': {
+            'youtube': {
+                'client': [yldlp_client]  # or 'web', 'tvhtml5', 'ios', etc.
+                }
+            },
+            #'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
+            'quiet': True  # Optional: suppress yt-dlp output
         }
-    else:
-        logging.error(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")
+        with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
+            try:
+                ydl.download([url])
+            except Exception as e:
+                logging.error(f"Error scrapping youtube video {e}")
+        thumbnail_image = download_thumbnail(video_thumbnail_url)
+        embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image)
+        audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir,audio_filename_ext))
+        logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
+        # Step 6: Compare durations
+        duration_tolerance = 10 #10 sec fault tolerance
+        if abs(video_duration - audio_duration) <= duration_tolerance:
+            logging.info("Durations match!")
+            return {
+                "video_title": video_title,
+                "video_duration": video_duration,
+                "video_thumbnail_url": video_thumbnail_url,
+                "audio_filename": audio_filename_ext
+            }
+        else:
+            logging.error(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")
+            audio_file_path = os.path.join(scraps_dir, f"{audio_filename_ext}")
+            # Check if the file exists before attempting to delete it
+            if os.path.exists(audio_file_path):
+                os.remove(audio_file_path)
+                logging.info(f"Deleted MP3 file: {audio_file_path} due to duration mismatch.")
+            else:
+                logging.warning(f"MP3 file {audio_file_path} not found for deletion.")
         
 
 def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
@@ -182,7 +211,6 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
         video_duration = yt.length  
         video_thumbnail_url = yt.thumbnail_url  
         audio_stream = yt.streams.filter(only_audio=True).first()
-
         if audio_stream:
             audio_stream.download(output_path=output_path, filename=f"{channel}_{video_title}.mp3")
             print(f"Downloaded audio for: {video_title} with duration: {video_duration} seconds")

@@ -15,6 +15,7 @@ db_connection_params = {
 posts_table = '''CREATE TABLE IF NOT EXISTS rips
                       (id SERIAL PRIMARY KEY,
                       creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                      channel TEXT,
                       video_title TEXT,
                       duration INTEGER,
                       format TEXT CHECK(format in ('VIDEO','AUDIO')),
@@ -88,3 +89,28 @@ def check_video_id_exists(conn, video_id, format):
     except psycopg2.Error as e:
         logging.error(f"Error checking video_id and format existence: {e}")
         return False
+    
+def insert_rip_record(conn, channel, video_title, duration, media_format, media_type,
+                      thumbnail_image_url, video_id, extracted_audio_filename):
+    try:
+        with conn.cursor() as cur:
+            insert_query = """
+                INSERT INTO rips 
+                (channel, video_title, duration, format, type, thumbnail_image_url, video_id, extracted_audio_filename)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cur.execute(insert_query, (
+                channel,
+                video_title,
+                duration,
+                media_format,
+                media_type,
+                thumbnail_image_url,
+                video_id,
+                extracted_audio_filename
+            ))
+            conn.commit()
+            logging.info(f"✅ Rip record for video: {video_title} inserted successfully.")
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"❌ Error inserting rip record: {e}")

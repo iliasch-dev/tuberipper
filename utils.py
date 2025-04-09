@@ -19,10 +19,6 @@ def load_config(filename):
     with open(filename, "r") as file:
         return json.load(file)
 
-
-
-    
-
 def staticSleep(waitTime):
     logging.info(f"Sleeping {waitTime}s")
     time.sleep(waitTime)
@@ -128,37 +124,46 @@ def scrap_audio(url,channel):
     with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
         info = ydl.extract_info(url, download=False)
         video_title = info.get('title')  # Video title
+        video_title = video_title.replace("/", "|").replace("\\", "|")
         video_duration = info.get('duration')  # Duration in seconds
         video_thumbnail_url = info.get('thumbnail')  # Thumbnail URL
-        print(f"Video title: {video_title}")
-        print(f"Original video duration: {video_duration} seconds")
-        print(f"Thumbnail URL: {video_thumbnail_url}")
+        logging.info(f"Video title: {video_title}")
+        logging.info(f"Original video duration: {video_duration} seconds")
+        logging.info(f"Thumbnail URL: {video_thumbnail_url}")
     logging.info("Converting video to mp3 file")
+    scraps_dir = "scraps"
+    if not os.path.exists(scraps_dir):
+        os.makedirs(scraps_dir)
+        logging.info(f"Directory '{scraps_dir}' created.")
     # Step 2: Download and convert to mp3
     audio_filename = f"{channel}_{video_title}_{timestamp()}"
-    audio_filename_ext = f"{channel}_{video_title}_{timestamp()},mp3"
+    audio_filename_ext = f"{channel}_{video_title}_{timestamp()}.mp3"
     ydl_opts_download = {
         'format': 'bestaudio/best',
-        'outtmpl': f'{audio_filename}.%(ext)s',
+        'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
+        'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
         'quiet': True  # Optional: suppress yt-dlp output
     }
     with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
         ydl.download([url])
     thumbnail_image = download_thumbnail(video_thumbnail_url)
-    embed_thumbnail(audio_filename_ext, thumbnail_image)
-    audio_duration = get_audio_duration_ffprobe(audio_filename_ext)
-    print(f"Downloaded MP3 duration: {audio_duration} seconds")
+    embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image)
+    audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir,audio_filename_ext))
+    logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
     # Step 6: Compare durations
     if video_duration == audio_duration:
-        print("Durations match!")
+        logging.info("Durations match!")
+        return {
+            "video_title": video_title,
+            "video_duration": video_duration,
+            "video_thumbnail_url": video_thumbnail_url,
+            "audio_filename": audio_filename_ext
+        }
     else:
-        print(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")
+        logging.error(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")
         
-
-
-

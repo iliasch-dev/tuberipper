@@ -17,10 +17,11 @@ posts_table = '''CREATE TABLE IF NOT EXISTS rips
                       creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                       video_title TEXT,
                       duration INTEGER,
+                      format TEXT CHECK(format in ('VIDEO','AUDIO')),
                       type TEXT CHECK(type IN ('STREAM', 'VIDEO')),
-                      thumbnail_image BYTEA,
-                      youtube_url TEXT,
-                      audio_filename TEXT 
+                      thumbnail_image_url TEXT,
+                      video_id TEXT,
+                      extracted_audio_filename TEXT 
                       )'''
 
 users_table = '''CREATE TABLE IF NOT EXISTS channels
@@ -74,3 +75,16 @@ def get_all_channels(conn):
     except psycopg2.Error as e:
         logging.error(f"Error fetching channels: {e}")
         return None
+    
+
+def check_video_id_exists(conn, video_id, format):
+    try:
+        cursor = conn.cursor()
+        query = "SELECT EXISTS(SELECT 1 FROM rips WHERE video_id = %s AND format = %s LIMIT 1);"     
+        cursor.execute(query, (video_id, format))     
+        exists = cursor.fetchone()[0]     
+        cursor.close()
+        return exists
+    except psycopg2.Error as e:
+        logging.error(f"Error checking video_id and format existence: {e}")
+        return False

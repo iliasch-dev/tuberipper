@@ -10,3 +10,6 @@ class Type(Enum):
     STREAM="streams"
     VIDEO="videos"
 
+class Format(Enum):
+    VIDEO = "VIDEO",
+    AUDIO = "AUDIO"

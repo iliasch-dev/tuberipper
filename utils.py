@@ -11,9 +11,11 @@ import subprocess
 import eyed3
 import requests
 from io import BytesIO
+from pytube import YouTube
 
 
 from enums import Speed
+from enums import Ytl_Dlp_Clients
 
 def load_config(filename):
     with open(filename, "r") as file:
@@ -37,7 +39,7 @@ def randomSleep(speed):
 
 def timestamp():
     now = datetime.now()
-    timestamp = str(now.strftime("%d%m%Y_%H%M%S"))
+    timestamp = str(now.strftime("%d%m%Y"))
     return timestamp
 
 def clear_directory_contents(directory_path):
@@ -118,7 +120,7 @@ def get_audio_duration_ffprobe(filename):
     duration = json.loads(result.stdout)['format']['duration']
     return int(float(duration))
 
-def scrap_audio(url,channel):
+def scrap_audio(url,channel,yldlp_client):
     # Step 1: Get the original video duration, title, and thumbnail
     ydl_opts_info = {}
     with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
@@ -146,6 +148,11 @@ def scrap_audio(url,channel):
             'preferredcodec': 'mp3',
             'preferredquality': '192',
         }],
+         'extractor_args': {
+        'youtube': {
+            'client': [yldlp_client]  # or 'web', 'tvhtml5', 'ios', etc.
+            }
+         },
         'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
         'quiet': True  # Optional: suppress yt-dlp output
     }
@@ -167,3 +174,23 @@ def scrap_audio(url,channel):
     else:
         logging.error(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")
         
+
+def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
+    try:
+        yt = YouTube(youtube_url)
+        video_title = yt.title
+        video_duration = yt.length  
+        video_thumbnail_url = yt.thumbnail_url  
+        audio_stream = yt.streams.filter(only_audio=True).first()
+
+        if audio_stream:
+            audio_stream.download(output_path=output_path, filename=f"{channel}_{video_title}.mp3")
+            print(f"Downloaded audio for: {video_title} with duration: {video_duration} seconds")
+        else:
+            print("No audio stream found!")
+        return video_title, video_duration, video_thumbnail_url
+    except Exception as e:
+        print(f"Error occurred: {e}")
+        return None, None, None
+
+

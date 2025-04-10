@@ -51,6 +51,10 @@ class ActionYoutube:
                         if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                             logging.info("Saving rip data in DB")
                             db_psql_client.insert_rip_record(self.db_conn, channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "STREAM", result['video_thumbnail_url'],video_id,result['audio_filename'])
+                            utils.send_pushover_notification(
+                                message=f"{result('channel')} - {result('video_title')}",
+                                image_url=result['video_thumbnail_url']
+                            )
                 if(channel['scrap_videos']):           
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()
@@ -62,7 +66,10 @@ class ActionYoutube:
                         if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                             logging.info("Saving rip data in DB")
                             db_psql_client.insert_rip_record(self.db_conn,  channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "VIDEO", result['video_thumbnail_url'],video_id,result['audio_filename'])
-
+                            utils.send_pushover_notification(
+                                message=f"{result('channel')} - {result('video_title')}",
+                                image_url=result['video_thumbnail_url']
+                            )
                 time.sleep(5)
         else:
             logging.error("No channels found or an error occurred.")

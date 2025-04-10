@@ -12,10 +12,7 @@ import eyed3
 import requests
 from io import BytesIO
 from pytube import YouTube
-
-
 from enums import Speed
-from enums import Ytl_Dlp_Clients
 
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"  # Replace with your Pushover app token
@@ -232,19 +229,25 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
         return None, None, None
 
 
-def send_pushover_notification(message, image_path):   
-    with open(image_path, 'rb') as image_file:
-        files = {
-            "attachment": image_file
-        }
-        data = {
-            "token": PUSHOVER_API_TOKEN,
-            "user": PUSHOVER_USER_KEY,
-            "message": message
-        }
-        response = requests.post(PUSHOVER_API_URL, data=data, files=files)   
+
+def send_pushover_notification(message, image_url):
+    image_response = requests.get(image_url)
+    if image_response.status_code != 200:
+        print("❌ Failed to download image.")
+        return
+    image_file = BytesIO(image_response.content)
+    image_file.name = "image.jpg"  # Pushover needs a filename
+    files = {
+        "attachment": image_file
+    }
+    data = {
+        "token": PUSHOVER_API_TOKEN,
+        "user": PUSHOVER_USER_KEY,
+        "message": message
+    }
+    response = requests.post(PUSHOVER_API_URL, data=data, files=files)
     if response.status_code == 200:
-        logging.info("✅ Notification sent successfully.")
+        print("✅ Notification sent successfully.")
     else:
-        logging.info("❌ Failed to send notification.")
-        logging.info(response.text)
+        print("❌ Failed to send notification.")
+        print(response.text)

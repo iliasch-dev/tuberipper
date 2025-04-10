@@ -13,6 +13,7 @@ import requests
 from io import BytesIO
 from pytube import YouTube
 from enums import Speed
+from PIL import Image
 
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"  # Replace with your Pushover app token
@@ -103,8 +104,15 @@ def scroll_by_amount(driver, scroll_amount):
 # Step 3: Download the thumbnail image
 def download_thumbnail(url):
     response = requests.get(url)
-    image_data = BytesIO(response.content)
-    return image_data
+    response.raise_for_status()  # Optional: throws an error for bad responses
+    # Load image from response
+    original_image = Image.open(BytesIO(response.content)).convert("RGB")
+    # Convert to JPEG in-memory
+    jpeg_data = BytesIO()
+    original_image.save(jpeg_data, format='JPEG')
+    jpeg_data.seek(0)
+
+    return jpeg_data
 
 def embed_thumbnail(mp3_file, image_data, title=None, album=None, artist=None):
     audio_file = eyed3.load(mp3_file)

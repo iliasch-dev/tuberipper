@@ -44,7 +44,7 @@ class ActionYoutube:
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.STREAM.value)
                     self.home_page.is_live_tab_dispalyed()
                     video_id = self.home_page.get_first_thumbnail()
-                    self.home_page.click_first_thumbnail()
+                    #self.home_page.click_first_thumbnail()
                     if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
                         url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
                         result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                    
@@ -55,7 +55,7 @@ class ActionYoutube:
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()
                     video_id = self.home_page.get_first_thumbnail()
-                    self.home_page.click_first_thumbnail()
+                    #self.home_page.click_first_thumbnail()
                     if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
                         url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
                         result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                     

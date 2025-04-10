@@ -46,7 +46,6 @@ class HomePage:
             self.logger.error(f"Error navigating to Youtube: {e}") 
             
     
-
     def navigate_to_channel_page(self,channel,type):      
         url = f"{self.config['YOUTUBE_URL']}{channel}/{type}"
         self.logger.info(f"Accessing Youtube channel url:{url}" )

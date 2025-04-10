@@ -233,7 +233,7 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
 def send_pushover_notification(message, image_url):
     image_response = requests.get(image_url)
     if image_response.status_code != 200:
-        print("❌ Failed to download image.")
+        logging.error("❌ Failed to download image.")
         return
     image_file = BytesIO(image_response.content)
     image_file.name = "image.jpg"  # Pushover needs a filename
@@ -247,7 +247,7 @@ def send_pushover_notification(message, image_url):
     }
     response = requests.post(PUSHOVER_API_URL, data=data, files=files)
     if response.status_code == 200:
-        print("✅ Notification sent successfully.")
+        logging.info("✅ Notification sent successfully.")
     else:
-        print("❌ Failed to send notification.")
-        print(response.text)
+        logging.error("❌ Failed to send notification.")
+        logging.error(response.text)

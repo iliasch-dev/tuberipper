@@ -231,8 +231,7 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
 
 
 def send_pushover_notification(message, image_url):
-    try:
-    
+    try:   
         logging.info(f"Downloading thumbnail:{image_url}")
         image_response = requests.get(image_url)
         if image_response.status_code != 200:
@@ -255,4 +254,5 @@ def send_pushover_notification(message, image_url):
             logging.error("❌ Failed to send notification.")
             logging.error(response.text)     
     except Exception as e:
-        logging.error("Error sending push notification")
+        logging.error(f"Error sending push notification {e}")
+

@@ -55,6 +55,7 @@ class ActionYoutube:
                                 message=f"{result('channel')} - {result('video_title')}",
                                 image_url=result['video_thumbnail_url']
                             )
+                    logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
                 if(channel['scrap_videos']):           
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()
@@ -70,6 +71,7 @@ class ActionYoutube:
                                 message=f"{result('channel')} - {result('video_title')}",
                                 image_url=result['video_thumbnail_url']
                             )
+                    logging.info(f"No new Videos found to scrap for channel:{channel['channel']}")
                 time.sleep(5)
         else:
             logging.error("No channels found or an error occurred.")

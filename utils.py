@@ -233,7 +233,7 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
 def send_pushover_notification(message, image_url):
     try:
     
-        ogging.info(f"Downloading thumbnail:{image_url}")
+        logging.info(f"Downloading thumbnail:{image_url}")
         image_response = requests.get(image_url)
         if image_response.status_code != 200:
             logging.error("❌ Failed to download image.")

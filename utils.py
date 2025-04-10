@@ -17,6 +17,9 @@ from pytube import YouTube
 from enums import Speed
 from enums import Ytl_Dlp_Clients
 
+PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
+PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"  # Replace with your Pushover app token
+PUSHOVER_USER_KEY = "REDACTED_USER_KEY"    # Replace with your Pushover user key
 
 def load_config(filename):
     with open(filename, "r") as file:
@@ -220,12 +223,28 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
         audio_stream = yt.streams.filter(only_audio=True).first()
         if audio_stream:
             audio_stream.download(output_path=output_path, filename=f"{channel}_{video_title}.mp3")
-            print(f"Downloaded audio for: {video_title} with duration: {video_duration} seconds")
+            logging.info(f"Downloaded audio for: {video_title} with duration: {video_duration} seconds")
         else:
-            print("No audio stream found!")
+            logging.error("No audio stream found!")
         return video_title, video_duration, video_thumbnail_url
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logging.error(f"Error occurred: {e}")
         return None, None, None
 
 
+def send_pushover_notification(message, image_path):   
+    with open(image_path, 'rb') as image_file:
+        files = {
+            "attachment": image_file
+        }
+        data = {
+            "token": PUSHOVER_API_TOKEN,
+            "user": PUSHOVER_USER_KEY,
+            "message": message
+        }
+        response = requests.post(PUSHOVER_API_URL, data=data, files=files)   
+    if response.status_code == 200:
+        logging.info("✅ Notification sent successfully.")
+    else:
+        logging.info("❌ Failed to send notification.")
+        logging.info(response.text)

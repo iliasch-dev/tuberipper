@@ -231,24 +231,28 @@ def download_audio_using_pytube(youtube_url,channel, output_path="scraps"):
 
 
 def send_pushover_notification(message, image_url):
-    logging.info(f"Downloading thumbnail:{image_url}")
-    image_response = requests.get(image_url)
-    if image_response.status_code != 200:
-        logging.error("❌ Failed to download image.")
-        return
-    image_file = BytesIO(image_response.content)
-    image_file.name = "image.jpg"  # Pushover needs a filename
-    files = {
-        "attachment": image_file
-    }
-    data = {
-        "token": PUSHOVER_API_TOKEN,
-        "user": PUSHOVER_USER_KEY,
-        "message": message
-    }
-    response = requests.post(PUSHOVER_API_URL, data=data, files=files)
-    if response.status_code == 200:
-        logging.info("✅ Notification sent successfully.")
-    else:
-        logging.error("❌ Failed to send notification.")
-        logging.error(response.text)
+    try:
+    
+        ogging.info(f"Downloading thumbnail:{image_url}")
+        image_response = requests.get(image_url)
+        if image_response.status_code != 200:
+            logging.error("❌ Failed to download image.")
+            return
+        image_file = BytesIO(image_response.content)
+        image_file.name = "image.jpg"  # Pushover needs a filename
+        files = {
+            "attachment": image_file
+        }
+        data = {
+            "token": PUSHOVER_API_TOKEN,
+            "user": PUSHOVER_USER_KEY,
+            "message": message
+        }
+        response = requests.post(PUSHOVER_API_URL, data=data, files=files)
+        if response.status_code == 200:
+            logging.info("✅ Notification sent successfully.")
+        else:
+            logging.error("❌ Failed to send notification.")
+            logging.error(response.text)     
+    except Exception as e:
+        logging.error("Error sending push notification")

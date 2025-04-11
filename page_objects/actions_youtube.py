@@ -53,7 +53,7 @@ class ActionYoutube:
                             db_psql_client.insert_rip_record(self.db_conn, channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "STREAM", result['video_thumbnail_url'],video_id,result['audio_filename'])
                             logging.info(f"Sending pushover: title={result['video_title']}, image={result['video_thumbnail_url']}")
                             utils.send_pushover_notification(
-                                message=f"{result['channel']} - {result['video_title']}",
+                                message=f"{channel['channel']} - {result['video_title']}",
                                 image_url=result['video_thumbnail_url']
                             )
                     logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
@@ -70,7 +70,7 @@ class ActionYoutube:
                             db_psql_client.insert_rip_record(self.db_conn,  channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "VIDEO", result['video_thumbnail_url'],video_id,result['audio_filename'])
                             logging.info(f"Sending pushover: title={result['video_title']}, image={result['video_thumbnail_url']}")
                             utils.send_pushover_notification(
-                                message=f"{result['channel']} - {result['video_title']}",
+                                message=f"{channel['channel']} - {result['video_title']}",
                                 image_url=result['video_thumbnail_url']
                             )
                     logging.info(f"No new Videos found to scrap for channel:{channel['channel']}")

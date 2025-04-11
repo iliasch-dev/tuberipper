@@ -253,7 +253,8 @@ def send_pushover_notification(message, image_url):
         data = {
             "token": PUSHOVER_API_TOKEN,
             "user": PUSHOVER_USER_KEY,
-            "message": message
+            "message": message,
+            "sound": "intermission"
         }
         response = requests.post(PUSHOVER_API_URL, data=data, files=files)
         if response.status_code == 200:

@@ -25,6 +25,8 @@ class HomePage:
         self.videos_tab = (By.XPATH, "//div[contains(@class, 'yt-tab-shape-wiz__tab') and contains(@class, 'yt-tab-shape-wiz__tab--tab-selected') and text()='Videos']")
         self.first_column_row_thumbnail = (By.CSS_SELECTOR, "yt-image img.yt-core-image")
         self.sign_in_button = (By.CSS_SELECTOR, 'span[role="text"]:contains("Sign in")')
+        self.live_ring= (By.CLASS_NAME, "yt-spec-avatar-shape--live-ring")
+
 
     def is_displayed(self):
         try:  
@@ -95,9 +97,9 @@ class HomePage:
             match = re.search(r'/vi/([^/]+)/', img_src)
             if match:
                 video_id = match.group(1)
-                self.logger.info("YouTube Video ID:", video_id)
+                self.logger.info(f"YouTube Video ID: {video_id}")
             else:
-                self.logger.error("Video ID not found in src:", img_src)
+                self.logger.error(f"Video ID not found in src {img_src}")
             self.logger.info(f"First Thumbnail displayed" )
             return video_id    
         except Exception as e:
@@ -138,4 +140,15 @@ class HomePage:
         except Exception as e: 
             self.logger.error(f"Error clicking Reject button: {e}")
         utils.randomSleep(Speed.FAST)
+
+    def is_live_ring_present(self):
+        try:  
+            live_ring = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(self.live_ring))
+            if (live_ring.is_displayed()):
+                 self.logger.info(f"Live-Ring displayed! Seems like a live-stream is in progress!" )
+                 return True
+            else: 
+                False
+        except Exception as e:
+            return False
 

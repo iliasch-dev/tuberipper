@@ -43,20 +43,21 @@ class ActionYoutube:
                 if(channel['scrap_streams']):
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.STREAM.value)
                     self.home_page.is_live_tab_dispalyed()
-                    video_id = self.home_page.get_first_thumbnail()
-                    #self.home_page.click_first_thumbnail()
-                    if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
-                        url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
-                        result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                    
-                        if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
-                            logging.info("Saving rip data in DB")
-                            db_psql_client.insert_rip_record(self.db_conn, channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "STREAM", result['video_thumbnail_url'],video_id,result['audio_filename'])
-                            logging.info(f"Sending pushover: title={result['video_title']}, image={result['video_thumbnail_url']}")
-                            utils.send_pushover_notification(
-                                message=f"{channel['channel']} - {result['video_title']}",
-                                image_url=result['video_thumbnail_url']
-                            )
-                    logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
+                    if not self.home_page.is_live_ring_present():
+                        video_id = self.home_page.get_first_thumbnail()
+                        #self.home_page.click_first_thumbnail()
+                        if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
+                            url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
+                            result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                    
+                            if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
+                                logging.info("Saving rip data in DB")
+                                db_psql_client.insert_rip_record(self.db_conn, channel['channel'], result['video_title'], result['video_duration'], Format.AUDIO.value, "STREAM", result['video_thumbnail_url'],video_id,result['audio_filename'])
+                                logging.info(f"Sending pushover: title={result['video_title']}, image={result['video_thumbnail_url']}")
+                                utils.send_pushover_notification(
+                                    message=f"{channel['channel']} - {result['video_title']}",
+                                    image_url=result['video_thumbnail_url']
+                                )
+                        logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
                 if(channel['scrap_videos']):           
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()

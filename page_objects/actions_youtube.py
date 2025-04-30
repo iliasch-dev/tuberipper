@@ -47,6 +47,7 @@ class ActionYoutube:
                         video_id = self.home_page.get_first_thumbnail()
                         #self.home_page.click_first_thumbnail()
                         if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
+                            logging.info(f"Stream with video id:{video_id} not scrapped, proceeding to scrap stream")
                             url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
                             result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                    
                             if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
@@ -57,13 +58,15 @@ class ActionYoutube:
                                     message=f"{channel['channel']} - {result['video_title']}",
                                     image_url=result['video_thumbnail_url']
                                 )
-                        logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
+                        else:
+                            logging.info(f"No new Live Streams found to scrap for channel:{channel['channel']}")
                 if(channel['scrap_videos']):           
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.VIDEO.value)
                     self.home_page.is_videos_tab_dispalyed()
                     video_id = self.home_page.get_first_thumbnail()
                     #self.home_page.click_first_thumbnail()
                     if not db_psql_client.check_video_id_exists(self.db_conn,video_id, Format.AUDIO.value):
+                        logging.info(f"Video with video id:{video_id} not scrapped, proceeding to scrap video")
                         url = self.config["YOUTUBE_URL"]+"watch?v="+video_id
                         result = utils.scrap_audio(url,channel['channel'],ytl_dlp_client)                     
                         if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
@@ -74,7 +77,8 @@ class ActionYoutube:
                                 message=f"{channel['channel']} - {result['video_title']}",
                                 image_url=result['video_thumbnail_url']
                             )
-                    logging.info(f"No new Videos found to scrap for channel:{channel['channel']}")
+                    else:
+                        logging.info(f"No new Videos found to scrap for channel:{channel['channel']}")
                 time.sleep(5)
         else:
             logging.error("No channels found or an error occurred.")

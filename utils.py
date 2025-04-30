@@ -103,7 +103,12 @@ def scroll_by_amount(driver, scroll_amount):
 
 # Step 3: Download the thumbnail image
 def download_thumbnail(url):
-    response = requests.get(url)
+    headers = {
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    }
+    response = requests.get(url,headers=headers)
     response.raise_for_status()  # Optional: throws an error for bad responses
     # Load image from response
     original_image = Image.open(BytesIO(response.content)).convert("RGB")

@@ -44,7 +44,7 @@ def randomSleep(speed):
 
 def timestamp():
     now = datetime.now()
-    timestamp = str(now.strftime("%d%m%Y"))
+    timestamp = now.strftime("%d%m%Y_%H:%M")
     return timestamp
 
 def clear_directory_contents(directory_path):
@@ -103,33 +103,41 @@ def scroll_by_amount(driver, scroll_amount):
 
 # Step 3: Download the thumbnail image
 def download_thumbnail(url):
-    headers = {
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Expires": "0"
-    }
-    response = requests.get(url,headers=headers)
-    response.raise_for_status()  # Optional: throws an error for bad responses
-    # Load image from response
-    original_image = Image.open(BytesIO(response.content)).convert("RGB")
-    # Convert to JPEG in-memory
-    jpeg_data = BytesIO()
-    original_image.save(jpeg_data, format='JPEG')
-    jpeg_data.seek(0)
-
-    return jpeg_data
+    try:
+        headers = {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+        response = requests.get(url,headers=headers)
+        response.raise_for_status()  # Optional: throws an error for bad responses
+        # Load image from response
+        original_image = Image.open(BytesIO(response.content)).convert("RGB")
+        # Convert to JPEG in-memory
+        jpeg_data = BytesIO()
+        original_image.save(jpeg_data, format='JPEG')
+        jpeg_data.seek(0)
+        logging.info("Downloaded thumbnail for video")
+        return jpeg_data
+    except Exception as e:
+        logging.error("Error downloading video thumbnail")
 
 def embed_thumbnail(mp3_file, image_data, title=None, album=None, artist=None):
-    audio_file = eyed3.load(mp3_file)
-    image_data.seek(0)  # Ensure the image data pointer is at the start
-    audio_file.tag.images.set(3, image_data.read(), 'image/jpeg')
-    if title:
-        audio_file.tag.title = title
-    if album:
-        audio_file.tag.album = album
-    if artist:
-        audio_file.tag.artist = artist
-    audio_file.tag.save()
+    try:
+        audio_file = eyed3.load(mp3_file)
+        image_data.seek(0)  # Ensure the image data pointer is at the start
+        audio_file.tag.images.set(3, image_data.read(), 'image/jpeg')
+        if title:
+            audio_file.tag.title = title
+        if album:
+            audio_file.tag.album = album
+        if artist:
+            audio_file.tag.artist = artist
+        audio_file.tag.save()
+        logging.info("MP3 metadata embeded on file")
+    except Exception as e:
+        logging.error(f"Error embedding metadata on file {e}")
+
 
 
 def get_audio_duration_ffprobe(filename):
@@ -180,8 +188,8 @@ def scrap_audio(url,channel,yldlp_client):
             os.makedirs(scraps_dir)
             logging.info(f"Directory '{scraps_dir}' created.")
         # Step 2: Download and convert to mp3
-        audio_filename = f"{channel}_{video_title}_{timestamp()}"
-        audio_filename_ext = f"{channel}_{video_title}_{timestamp()}.mp3"
+        audio_filename = f"{channel}_{timestamp()}"
+        audio_filename_ext = f"{channel}_{timestamp()}.mp3"
         ydl_opts_download = {
             'format': 'bestaudio/best',
             'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),

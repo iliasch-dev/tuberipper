@@ -133,16 +133,20 @@ def embed_thumbnail(mp3_file, image_data, title=None, album=None, artist=None):
 
 
 def get_audio_duration_ffprobe(filename):
-    cmd = [
-        'ffprobe',
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'json',
-        filename
-    ]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    duration = json.loads(result.stdout)['format']['duration']
-    return int(float(duration))
+    try:
+        cmd = [
+            'ffprobe',
+            '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'json',
+            filename
+        ]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        duration = json.loads(result.stdout)['format']['duration']
+        return int(float(duration))
+    except Exception as e:
+        logging.error("Error getting audio duration")
+        
 
 
 def grab_video_info(url):

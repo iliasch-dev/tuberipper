@@ -146,7 +146,7 @@ def get_audio_duration_ffprobe(filename):
     duration = json.loads(result.stdout)['format']['duration']
     return int(float(duration))
 
-def sanitize_filename(name, replace_with="_", ascii_only=False):
+def sanitize_title(name, replace_with="_", ascii_only=False):
     # 1. Replace Windows-forbidden characters and control characters
     name = re.sub(r'[<>:"/\\|?*\x00-\x1F]', replace_with, name)
     

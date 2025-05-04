@@ -176,8 +176,8 @@ def scrap_audio(url,channel,yldlp_client):
             os.makedirs(scraps_dir)
             logging.info(f"Directory '{scraps_dir}' created.")
         # Step 2: Download and convert to mp3
-        audio_filename = f"{channel}_{video_title}_{timestamp()}"
-        audio_filename_ext = f"{channel}_{video_title}_{timestamp()}.mp3"
+        audio_filename = f"{channel}_{video_title}"
+        audio_filename_ext = f"{channel}_{video_title}.mp3"
         ydl_opts_download = {
             'format': 'bestaudio/best',
             'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),

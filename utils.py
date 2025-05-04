@@ -14,6 +14,8 @@ from io import BytesIO
 from pytube import YouTube
 from enums import Speed
 from PIL import Image
+import re
+import unicodedata
 
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"  # Replace with your Pushover app token
@@ -144,6 +146,26 @@ def get_audio_duration_ffprobe(filename):
     duration = json.loads(result.stdout)['format']['duration']
     return int(float(duration))
 
+def sanitize_filename(name, replace_with="_", ascii_only=False):
+    # 1. Replace Windows-forbidden characters and control characters
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1F]', replace_with, name)
+    
+    # 2. Optionally normalize and remove non-ASCII characters (e.g., €)
+    if ascii_only:
+        # Normalize Unicode to remove accents and convert to closest ASCII
+        name = unicodedata.normalize('NFKD', name)
+        name = name.encode('ascii', 'ignore').decode('ascii')
+
+    # 3. Replace additional user-defined symbols
+    # You can customize this set
+    extra_forbidden = r'[€©™•…“”‘’–—·¿¡]'
+    name = re.sub(extra_forbidden, replace_with, name)
+
+    # 4. Collapse multiple underscores (or replace_with character)
+    name = re.sub(f'{re.escape(replace_with)}+', replace_with, name)
+
+    # 5. Strip leading/trailing spaces or replacement characters
+    return name.strip().strip(replace_with)
 
 def grab_video_info(url):
     ydl_opts_info = {}
@@ -154,7 +176,7 @@ def grab_video_info(url):
          with yt_dlp.YoutubeDL(ydl_opts_info) as ydl: 
             info = ydl.extract_info(url, download=False)
             video_title = info.get('title')  # Video title
-            video_title = video_title.replace("/", " ").replace("\\", " ").replace("€", "e")
+            video_title = sanitize_title(video_title)   
             video_duration = info.get('duration')  # Duration in seconds
             video_thumbnail_url = info.get('thumbnail')  # Thumbnail URL
             logging.info(f"Video title: {video_title}")

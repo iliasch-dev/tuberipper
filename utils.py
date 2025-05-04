@@ -194,6 +194,7 @@ def scrap_audio(url,channel,yldlp_client):
             #'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
             'quiet': True  # Optional: suppress yt-dlp output
         }
+        logging.info(ydl_opts_download)
         with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
             try:
                 ydl.download([url])

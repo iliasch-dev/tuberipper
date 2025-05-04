@@ -40,7 +40,7 @@ class ActionYoutube:
         logging.info(f"Picking YT-DLP client: {ytl_dlp_client}")
         if channels is not None:
             for channel in channels: 
-                logging.info(f"===>Checking channel:{channel['channel']}<===")     
+                logging.info(f"==========>Checking channel:{channel['channel']}<==========")     
                 if(channel['scrap_streams']):
                     self.home_page.navigate_to_channel_page(channel['channel'],Type.STREAM.value)
                     self.home_page.is_live_tab_dispalyed()

@@ -222,6 +222,7 @@ def scrap_audio(url,channel,yldlp_client):
             except Exception as e:
                 logging.error(f"Error scrapping youtube video {e}")
         thumbnail_image = download_thumbnail(video_thumbnail_url)
+        full_audio_path = os.path.join(scraps_dir, audio_filename_ext)
         embed_thumbnail( os.path.join(scraps_dir,audio_filename_ext), thumbnail_image, video_title,video_title,channel)
         audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir,audio_filename_ext))
         logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
@@ -229,6 +230,14 @@ def scrap_audio(url,channel,yldlp_client):
         duration_tolerance = 10 #10 sec fault tolerance
         if abs(video_duration - audio_duration) <= duration_tolerance:
             logging.info("Durations match!")
+            target_dir = "/media/chronalis/tuberipper/"
+            if not os.path.exists(target_dir):
+                os.makedirs(target_dir)  # Optional: create if it doesn't exist
+                logging.info(f"Target directory '{target_dir}' created.")
+
+            target_path = os.path.join(target_dir, audio_filename_ext)
+            shutil.move(full_audio_path, target_path)
+            logging.info(f"Moved MP3 file to {target_path}")
             return {
                 "video_title": video_title,
                 "video_duration": video_duration,

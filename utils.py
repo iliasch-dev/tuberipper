@@ -105,21 +105,31 @@ def scroll_by_amount(driver, scroll_amount):
 
 # Step 3: Download the thumbnail image
 def download_thumbnail(url):
-    headers = {
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "Expires": "0"
-    }
-    response = requests.get(url,headers=headers)
-    response.raise_for_status()  # Optional: throws an error for bad responses
-    # Load image from response
-    original_image = Image.open(BytesIO(response.content)).convert("RGB")
-    # Convert to JPEG in-memory
-    jpeg_data = BytesIO()
-    original_image.save(jpeg_data, format='JPEG')
-    jpeg_data.seek(0)
+    try: 
+        headers = {
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+        response = requests.get(url,headers=headers)
+        response.raise_for_status()  # Optional: throws an error for bad responses
+        # Load image from response
+        original_image = Image.open(BytesIO(response.content)).convert("RGB")
+        # Convert to JPEG in-memory
+        jpeg_data = BytesIO()
+        original_image.save(jpeg_data, format='JPEG')
+        jpeg_data.seek(0)
+        logging.info(f"downloaded thumbnail for url:{url}")
+        return jpeg_data
+    except Exception as e:
+        logging.error("error capturing thumbnail")
+        blank_image = Image.new('RGB', (1, 1), color='white')
+        jpeg_data = BytesIO()
+        blank_image.save(jpeg_data, format='JPEG')
+        jpeg_data.seek(0)
+        return jpeg_data
 
-    return jpeg_data
+
 
 def embed_thumbnail(mp3_file, image_data, title=None, album=None, artist=None):
     audio_file = eyed3.load(mp3_file)

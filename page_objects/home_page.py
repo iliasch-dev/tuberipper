@@ -23,7 +23,7 @@ class HomePage:
         self.cookies_modal_title = (By.CSS_SELECTOR, "yt-formatted-string.style-scope.ytd-consent-bump-v2-lightbox")
         self.live_tab = (By.XPATH, "//div[contains(@class, 'yt-tab-shape-wiz__tab') and contains(@class, 'yt-tab-shape-wiz__tab--tab-selected') and text()='Live']")
         self.videos_tab = (By.XPATH, "//div[contains(@class, 'yt-tab-shape-wiz__tab') and contains(@class, 'yt-tab-shape-wiz__tab--tab-selected') and text()='Videos']")
-        self.first_column_row_thumbnail = (By.CSS_SELECTOR, "img.ytCoreImageHost")
+        self.first_column_row_thumbnail = (By.CSS_SELECTOR, "img#thumbnail.style-scope ytd-thumbnail")
         self.sign_in_button = (By.CSS_SELECTOR, 'span[role="text"]:contains("Sign in")')
         self.live_ring= (By.CLASS_NAME, "yt-spec-avatar-shape--live-ring")
 
@@ -95,6 +95,7 @@ class HomePage:
             utils.highlight_element(self.driver, thumbnail)
             img_src = thumbnail.get_attribute("src")
             match = re.search(r'/vi/([^/]+)/', img_src)
+            
             if match:
                 video_id = match.group(1)
                 self.logger.info(f"YouTube Video ID: {video_id}")

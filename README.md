@@ -1,5 +1,5 @@
 <img width="128" height="128" alt="image" src="https://github.com/user-attachments/assets/919c7d97-831c-4b2f-8163-8cef67cd18b3" /><p align="left">
-  <b>Tuberipper</b> <img>https://pushover.net/icons/pzduzhzjsi5iocr.png</img>
+  <b>Tuberipper</b> 
 </p>
 
 <p align="left">

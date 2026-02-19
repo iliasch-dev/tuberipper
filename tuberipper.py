@@ -44,6 +44,7 @@ def _initialize_stealthy_driver():
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("window-size=1920,1080")
     if chromedriver_path!="":
         service = Service(executable_path=chromedriver_path ) 
         driver = webdriver.Chrome(service=service,options=chrome_options)

@@ -92,6 +92,7 @@ class HomePage:
     def get_first_thumbnail(self):
         try:  
             thumbnail = WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.first_column_row_thumbnail))
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", thumbnail)
             utils.highlight_element(self.driver, thumbnail)
             img_src = thumbnail.get_attribute("src")
             match = re.search(r'/vi/([^/]+)/', img_src)

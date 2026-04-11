@@ -28,6 +28,48 @@ def load_config(filename):
 config = load_config("config.json")
 
 
+def _yt_dlp_auth_options():
+    """
+    YouTube often returns a bot check (sign-in required) when yt-dlp has no session cookies.
+    Set YTDLP_COOKIES_FILE to a Netscape-format cookies.txt, or YTDLP_COOKIES_FROM_BROWSER (e.g. chrome, firefox).
+    Alternatively place youtube_cookies.txt or cookies.txt under COOKIES_PATH.
+    See https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
+    """
+    out = {}
+    cf = config.get("YTDLP_COOKIES_FILE") or config.get("YT_DLP_COOKIES_FILE")
+    if isinstance(cf, str) and cf.strip():
+        path = os.path.abspath(os.path.expanduser(cf.strip()))
+        if os.path.isfile(path):
+            out["cookiefile"] = path
+            logging.info("yt-dlp using cookie file: %s", path)
+            return out
+        logging.warning("YTDLP_COOKIES_FILE set but file not found: %s", path)
+
+    browser = config.get("YTDLP_COOKIES_FROM_BROWSER") or config.get("COOKIES_FROM_BROWSER")
+    if isinstance(browser, str) and browser.strip():
+        out["cookiesfrombrowser"] = (browser.strip().lower(),)
+        logging.info("yt-dlp using cookies from browser: %s", browser.strip().lower())
+        return out
+
+    folder = config.get("COOKIES_PATH")
+    if isinstance(folder, str) and folder.strip():
+        base = folder.strip().rstrip(os.sep)
+        for fname in ("youtube_cookies.txt", "cookies.txt", "yt_cookies.txt"):
+            path = os.path.abspath(os.path.join(base, fname))
+            if os.path.isfile(path):
+                out["cookiefile"] = path
+                logging.info("yt-dlp using cookie file: %s", path)
+                return out
+    return out
+
+
+def _yt_dlp_common_options():
+    """Cookies (if configured) + EJS solver from GitHub (requires Deno on PATH)."""
+    opts = _yt_dlp_auth_options()
+    opts["remote_components"] = {"ejs:github"}
+    return opts
+
+
 def staticSleep(waitTime):
     logging.info(f"Sleeping {waitTime}s")
     time.sleep(waitTime)
@@ -179,6 +221,7 @@ def sanitize_title(name, replace_with="_", ascii_only=False):
 
 def grab_video_info(url):
     ydl_opts_info = {}
+    ydl_opts_info.update(_yt_dlp_common_options())
     video_title=""
     video_duration=""
     video_thumbnail_url=""
@@ -226,6 +269,7 @@ def scrap_audio(url,channel,yldlp_client):
             #'postprocessor_args': ['-t', '60'],  #TOBEREMOVED
             'quiet': True  # Optional: suppress yt-dlp output
         }
+        ydl_opts_download.update(_yt_dlp_common_options())
         with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
             try:
                 ydl.download([url])

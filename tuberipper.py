@@ -37,7 +37,7 @@ def _initialize_stealthy_driver():
     chrome_options.add_argument("--disable-external-intent-requests")
     chrome_options.add_argument("--disable-web-security") 
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--headless")
+   # chrome_options.add_argument("--headless")
     chrome_prefs = {"profile.managed_default_content_settings.images": 1} #use 2 for blocking and 3 to block 3rd party
     chrome_options.add_experimental_option("prefs", chrome_prefs)    
     chrome_options.add_argument("--enable-javascript")

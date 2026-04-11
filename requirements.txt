@@ -3,7 +3,6 @@ Image
 requests
 emoji
 psycopg2-binary
-psycopg2
 yt-dlp
 ffmpeg
 eyed3

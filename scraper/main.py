@@ -86,24 +86,27 @@ def main():
     scheduler = BlockingScheduler()
 
     def job():
-        db_conn = db_client.init_database()
-        schedule = db_client.get_schedule(db_conn)
-        db_conn.close()
+        try:
+            db_conn = db_client.init_database()
+            schedule = db_client.get_schedule(db_conn)
+            db_conn.close()
 
-        if schedule['enabled']:
-            _run_scrape()
-            db_conn2 = db_client.init_database()
-            db_client.increment_run_count(db_conn2)
-            db_conn2.close()
-        else:
-            logger.info("Scraper is disabled — skipping run")
+            if schedule['enabled']:
+                _run_scrape()
+                db_conn2 = db_client.init_database()
+                db_client.increment_run_count(db_conn2)
+                db_conn2.close()
+            else:
+                logger.info("Scraper is disabled — skipping run")
 
-        # Re-read interval in case it was changed via the webapp
-        db_conn = db_client.init_database()
-        updated = db_client.get_schedule(db_conn)
-        db_conn.close()
-        scheduler.reschedule_job('scrape', trigger='interval', minutes=updated['interval_minutes'])
-        logger.info(f"Next run in {updated['interval_minutes']} minutes")
+            # Re-read interval in case it was changed via the webapp
+            db_conn = db_client.init_database()
+            updated = db_client.get_schedule(db_conn)
+            db_conn.close()
+            scheduler.reschedule_job('scrape', trigger='interval', minutes=updated['interval_minutes'])
+            logger.info(f"Next run in {updated['interval_minutes']} minutes")
+        except Exception as e:
+            logger.error(f"Unhandled error in scheduler job: {utils.clean_error(e)}")
 
     scheduler.add_job(
         job,

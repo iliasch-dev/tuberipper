@@ -4,7 +4,6 @@ RUN apt-get update && apt-get install -y \
     chromium \
     chromium-driver \
     ffmpeg \
-    xvfb \
     curl \
     unzip \
     && rm -rf /var/lib/apt/lists/*
@@ -20,5 +19,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# xvfb-run provides a virtual display since headless is disabled in scraper/main.py
-CMD ["xvfb-run", "--auto-servernum", "python", "-m", "scraper.main"]
+CMD ["python", "-m", "scraper.main"]

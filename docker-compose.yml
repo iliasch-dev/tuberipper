@@ -27,8 +27,9 @@ services:
       DB_PASS: greatcornholio
       DB_HOST: db
       LOG_PATH: /app/logs/tuberipper.log
-      SECRET_KEY: change-me-to-a-random-string
-      WEBAPP_PASSWORD: change-me
+      SECRET_KEY: dakjdkajdkj2932938
+      WEBAPP_USERNAME: admin
+      WEBAPP_PASSWORD: flcl@[2254]!
     volumes:
       - ./logs:/app/logs
     restart: unless-stopped

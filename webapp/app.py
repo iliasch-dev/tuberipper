@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, Response, stream_with_context
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, stream_with_context, session
 import psycopg2
 import subprocess
 import os
@@ -9,18 +9,18 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
 
+_WEBAPP_USERNAME = os.environ.get('WEBAPP_USERNAME', '')
 _WEBAPP_PASSWORD = os.environ.get('WEBAPP_PASSWORD', '')
 _LOG_PATH = os.environ.get('LOG_PATH', 'tuberipper.log')
 
+_AUTH_ENABLED = bool(_WEBAPP_USERNAME and _WEBAPP_PASSWORD)
 
-def _require_auth(f):
+
+def _require_login(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not _WEBAPP_PASSWORD:
-            return f(*args, **kwargs)
-        auth = request.authorization
-        if not auth or not secrets.compare_digest(auth.password, _WEBAPP_PASSWORD):
-            return Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="Tuberipper"'})
+        if _AUTH_ENABLED and not session.get('logged_in'):
+            return redirect(url_for('login', next=request.path))
         return f(*args, **kwargs)
     return decorated
 
@@ -79,8 +79,34 @@ def _count_log_errors():
     return count
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if not _AUTH_ENABLED:
+        return redirect(url_for('index'))
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        username_ok = secrets.compare_digest(username, _WEBAPP_USERNAME)
+        password_ok = secrets.compare_digest(password, _WEBAPP_PASSWORD)
+        if username_ok and password_ok:
+            session['logged_in'] = True
+            session.permanent = False
+            return redirect(request.args.get('next') or url_for('index'))
+        error = 'Invalid credentials.'
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 @app.route('/')
-@_require_auth
+@_require_login
 def index():
     conn = get_db()
     cur = conn.cursor()
@@ -112,7 +138,7 @@ def index():
 
 
 @app.route('/add', methods=['POST'])
-@_require_auth
+@_require_login
 def add_channel():
     channel = request.form.get('channel', '').strip()
     if not channel:
@@ -133,7 +159,7 @@ def add_channel():
 
 
 @app.route('/update/<int:channel_id>', methods=['POST'])
-@_require_auth
+@_require_login
 def update_channel(channel_id):
     scrap_streams = 'scrap_streams' in request.form
     scrap_videos = 'scrap_videos' in request.form
@@ -146,11 +172,11 @@ def update_channel(channel_id):
     conn.commit()
     cur.close()
     conn.close()
-    return redirect(url_for('index'))
+    return ('', 204)
 
 
 @app.route('/delete/<int:channel_id>', methods=['POST'])
-@_require_auth
+@_require_login
 def delete_channel(channel_id):
     conn = get_db()
     cur = conn.cursor()
@@ -162,7 +188,7 @@ def delete_channel(channel_id):
 
 
 @app.route('/schedule/update', methods=['POST'])
-@_require_auth
+@_require_login
 def update_schedule():
     try:
         interval_minutes = int(request.form.get('interval_minutes', 60))
@@ -185,7 +211,7 @@ def update_schedule():
 
 
 @app.route('/logs/stream')
-@_require_auth
+@_require_login
 def stream_logs():
     def generate():
         proc = None

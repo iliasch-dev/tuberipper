@@ -22,6 +22,21 @@
       margin-bottom: 2rem;
     }
 
+    .btn-logout {
+      margin-left: auto;
+      background: transparent;
+      border: 1px solid #333;
+      color: #666;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-logout:hover { color: #aaa; border-color: #555; }
+
     header h1 {
       font-size: 1.6rem;
       font-weight: 700;
@@ -367,6 +382,7 @@
     <img src="{{ url_for('static', filename='logo.png') }}"
          width="80" height="80" alt="Tuberipper logo" style="border-radius:6px; flex-shrink:0;">
     <h1>Tube<span>ripper</span></h1>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
   </header>
 
   <!-- Stats -->

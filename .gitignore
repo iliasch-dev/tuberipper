@@ -5,4 +5,5 @@ tuberipper.log
 screencap/*
 scheduler.sh
 CLAUDE.md
-logs/*.log
+logs/
+cookies/

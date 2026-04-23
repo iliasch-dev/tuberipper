@@ -365,7 +365,7 @@
 
   <header>
     <img src="{{ url_for('static', filename='logo.png') }}"
-         width="40" height="40" alt="Tuberipper logo" style="border-radius:6px; flex-shrink:0;">
+         width="80" height="80" alt="Tuberipper logo" style="border-radius:6px; flex-shrink:0;">
     <h1>Tube<span>ripper</span></h1>
   </header>
 
@@ -540,17 +540,12 @@
     }
 
     function syncAndSubmit(id, changed) {
-      if (changed === 'streams') {
-        // streams form was changed; before submitting, sync videos hidden field
-        const videosChecked = document.querySelector('#form-videos-' + id + ' input[name="scrap_videos"]').checked;
-        document.getElementById('hid-videos-' + id).value = videosChecked ? 'on' : '';
-        document.getElementById('form-streams-' + id).submit();
-      } else {
-        // videos form was changed; sync streams hidden field
-        const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;
-        document.getElementById('hid-streams-' + id).value = streamsChecked ? 'on' : '';
-        document.getElementById('form-videos-' + id).submit();
-      }
+      const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;
+      const videosChecked  = document.querySelector('#form-videos-'  + id + ' input[name="scrap_videos"]').checked;
+      const body = new URLSearchParams();
+      body.append('scrap_streams', streamsChecked ? 'on' : '');
+      body.append('scrap_videos',  videosChecked  ? 'on' : '');
+      fetch('/update/' + id, { method: 'POST', body: body });
     }
   </script>
 

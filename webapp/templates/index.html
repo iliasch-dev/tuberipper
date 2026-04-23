@@ -19,7 +19,7 @@
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      margin-bottom: 2.5rem;
+      margin-bottom: 2rem;
     }
 
     header h1 {
@@ -29,6 +29,45 @@
     }
 
     header h1 span { color: #ff4444; }
+
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 700px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #666;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #e8e8e8;
+      line-height: 1.2;
+    }
+
+    .stat-card.errors .stat-value { color: #ff4444; }
+    .stat-card.rips  .stat-value  { color: #44cc44; }
 
     .card {
       background: #1a1a1a;
@@ -325,11 +364,30 @@
 <body>
 
   <header>
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="#ff4444">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
-    </svg>
+    <img src="https://github.com/user-attachments/assets/919c7d97-831c-4b2f-8163-8cef67cd18b3"
+         width="40" height="40" alt="Tuberipper logo" style="border-radius:6px; flex-shrink:0;">
     <h1>Tube<span>ripper</span></h1>
   </header>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <span class="stat-label">Next Run</span>
+      <span class="stat-value" style="font-size:1.1rem;">{{ stats.next_fire }}</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">Times Run</span>
+      <span class="stat-value">{{ stats.run_count }}</span>
+    </div>
+    <div class="stat-card rips">
+      <span class="stat-label">Videos Ripped</span>
+      <span class="stat-value">{{ stats.total_rips }}</span>
+    </div>
+    <div class="stat-card errors">
+      <span class="stat-label">Errors Logged</span>
+      <span class="stat-value">{{ stats.error_count }}</span>
+    </div>
+  </div>
 
   {% for msg in get_flashed_messages() %}
     <div class="flash">{{ msg }}</div>
@@ -367,9 +425,20 @@
     </form>
   </div>
 
-  <!-- Channel list -->
+  <!-- Channels -->
   <div class="card">
     <h2>Channels</h2>
+
+    <!-- Add form -->
+    <form class="add-form" method="POST" action="/add" style="margin-bottom:1.25rem;">
+      <input type="text" name="channel" placeholder="e.g. @MrBeast or UCxxxxxx" required>
+      <div class="checks">
+        <label><input type="checkbox" name="scrap_streams" checked> Livestreams</label>
+        <label><input type="checkbox" name="scrap_videos" checked> Videos</label>
+      </div>
+      <button class="btn-add" type="submit">Add</button>
+    </form>
+
     {% if channels %}
     <table>
       <thead>
@@ -427,21 +496,8 @@
       </tbody>
     </table>
     {% else %}
-      <p class="empty-state">No channels yet — add one below.</p>
+      <p class="empty-state">No channels yet.</p>
     {% endif %}
-  </div>
-
-  <!-- Add channel -->
-  <div class="card">
-    <h2>Add Channel</h2>
-    <form class="add-form" method="POST" action="/add">
-      <input type="text" name="channel" placeholder="e.g. @MrBeast or UCxxxxxx" required>
-      <div class="checks">
-        <label><input type="checkbox" name="scrap_streams" checked> Livestreams</label>
-        <label><input type="checkbox" name="scrap_videos" checked> Videos</label>
-      </div>
-      <button class="btn-add" type="submit">Add</button>
-    </form>
   </div>
 
   <!-- Log viewer -->

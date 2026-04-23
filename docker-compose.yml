@@ -28,7 +28,7 @@ services:
       DB_HOST: db
       LOG_PATH: /app/logs/tuberipper.log
     volumes:
-      - logs:/app/logs
+      - ./logs:/app/logs
     restart: unless-stopped
 
   scraper:
@@ -38,15 +38,15 @@ services:
         condition: service_healthy
     environment:
       LOG_PATH: /app/logs/tuberipper.log
+      TZ: Europe/Athens
     volumes:
       - ./config.json:/app/config.json:ro
       - ./cookies:/app/cookies
       - ./screencap:/app/screencap
+      - ./logs:/app/logs
       - rips:/media/chronalis/tuberipper
-      - logs:/app/logs
     restart: unless-stopped
 
 volumes:
   pgdata:
   rips:
-  logs:

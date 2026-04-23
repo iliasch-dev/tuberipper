@@ -17,8 +17,11 @@ from datetime import datetime
 
 
 log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
-os.makedirs(os.path.dirname(log_path), exist_ok=True) if os.path.dirname(log_path) else None
-logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - TUBERIPPER MAIN - %(levelname)s: %(message)s')
+if os.path.dirname(log_path):
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+logging.basicConfig(filename=log_path, level=logging.INFO,
+                    format='%(asctime)s - TUBERIPPER MAIN - %(levelname)s: %(message)s',
+                    force=True)
 logger = logging.getLogger(__name__)
 
 config = utils.load_config("config.json")
@@ -40,7 +43,8 @@ def _initialize_stealthy_driver():
     chrome_options.add_argument("--disable-external-intent-requests")
     chrome_options.add_argument("--disable-web-security")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    # chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_prefs = {"profile.managed_default_content_settings.images": 1}
     chrome_options.add_experimental_option("prefs", chrome_prefs)
     chrome_options.add_argument("--enable-javascript")
@@ -87,6 +91,9 @@ def main():
 
         if schedule['enabled']:
             _run_scrape()
+            db_conn2 = db_client.init_database()
+            db_client.increment_run_count(db_conn2)
+            db_conn2.close()
         else:
             logger.info("Scraper is disabled — skipping run")
 

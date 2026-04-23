@@ -1,5 +1,5 @@
 selenium
-Image
+pillow
 requests
 emoji
 psycopg2-binary
@@ -7,3 +7,4 @@ yt-dlp
 ffmpeg
 eyed3
 apscheduler
+pytube

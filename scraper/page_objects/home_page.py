@@ -83,11 +83,11 @@ class HomePage:
             if self._youtube_shell_ready():
                 self.logger.info("Navigated to Youtube Homepage as anonymous user")
                 return True
-            self.logger.error("YouTube page shell not detected")
+            self.logger.error("YouTube page shell not detected after waiting — page may not have loaded")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_display_failed.png")
             return False
         except Exception as e:
-            self.logger.error(f"Error displaying Youtube page: {e}")
+            self.logger.error(f"Failed to verify YouTube page loaded: {utils.clean_error(e)}")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_display_failed.png")
             return False
 
@@ -97,7 +97,7 @@ class HomePage:
         try:
             self.driver.get(url)
         except Exception as e:
-            self.logger.error(f"Error navigating to Youtube: {e}")
+            self.logger.error(f"Failed to navigate to YouTube homepage: {utils.clean_error(e)}")
 
     def navigate_to_channel_page(self, channel, type):
         url = f"{self.config['YOUTUBE_URL']}{channel}/{type}"
@@ -105,7 +105,7 @@ class HomePage:
         try:
             self.driver.get(url)
         except Exception as e:
-            self.logger.error(f"Error navigating to Youtube: {e}")
+            self.logger.error(f"Failed to navigate to channel page {url}: {utils.clean_error(e)}")
 
     def _nudge_lazy_channel_content(self):
         try:
@@ -194,8 +194,12 @@ class HomePage:
             self._wait_for_channel_grid()
             self.logger.info("Live content grid loaded")
             return True
+        except TimeoutException:
+            self.logger.error("Timed out waiting for live streams grid — YouTube may not have rendered the page")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_live_tab_navigation_failed.png")
+            return False
         except Exception as e:
-            self.logger.error(f"Error displaying Live Tab: {e}")
+            self.logger.error(f"Failed to load live streams tab: {utils.clean_error(e)}")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_live_tab_navigation_failed.png")
             return False
 
@@ -214,8 +218,12 @@ class HomePage:
             self._wait_for_channel_grid()
             self.logger.info("Videos grid loaded")
             return True
+        except TimeoutException:
+            self.logger.error("Timed out waiting for videos grid — YouTube may not have rendered the page")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_videos_tab_navigation_failed.png")
+            return False
         except Exception as e:
-            self.logger.error(f"Error displaying Videos Tab: {e}")
+            self.logger.error(f"Failed to load videos tab: {utils.clean_error(e)}")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_videos_tab_navigation_failed.png")
             return False
 
@@ -246,11 +254,14 @@ class HomePage:
                 video_id = match.group(1)
                 self.logger.info("YouTube Video ID (from image src): %s", video_id)
             else:
-                self.logger.error("Video ID not found in src %s", img_src)
+                self.logger.error(f"Could not extract video ID from thumbnail src: {img_src[:80]}")
             self.logger.info("First Thumbnail displayed")
             return video_id
+        except TimeoutException:
+            self.logger.error("Timed out waiting for first thumbnail — video grid did not load")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_display_failed.png")
         except Exception as e:
-            self.logger.error(f"Error displaying First thumbnail: {e}")
+            self.logger.error(f"Failed to get first thumbnail: {utils.clean_error(e)}")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_display_failed.png")
 
     def click_first_thumbnail(self):
@@ -260,17 +271,17 @@ class HomePage:
             )
             utils.highlight_element(self.driver, thumbnail)
             thumbnail.click()
-            self.logger.info(f"Clicked First Thumbnail")
+            self.logger.info("Clicked First Thumbnail")
+        except TimeoutException:
+            self.logger.error("Timed out waiting for first thumbnail to become clickable")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_click_failed.png")
         except Exception as e:
-            self.logger.error(f"Error clicking First thumbnail: {e}")
+            self.logger.error(f"Failed to click first thumbnail: {utils.clean_error(e)}")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_click_failed.png")
 
     def click_accept_button(self):
         self.logger.info("Clicking Accept cookies if consent dialog is shown")
-        btn = self._first_clickable(
-            self._ACCEPT_COOKIE_LOCATORS,
-            min(20, float(self.driver_wait_sec)),
-        )
+        btn = self._first_clickable(self._ACCEPT_COOKIE_LOCATORS, min(20, float(self.driver_wait_sec)))
         if btn:
             try:
                 utils.highlight_element(self.driver, btn)
@@ -278,17 +289,14 @@ class HomePage:
                 self.logger.info("Accepted cookie consent")
                 utils.randomSleep(Speed.FAST)
             except Exception as e:
-                self.logger.warning(f"Accept cookies click failed: {e}")
+                self.logger.warning(f"Accept cookies click failed: {utils.clean_error(e)}")
         else:
             self.logger.info("No Accept-all cookie button found; continuing")
         self.is_displayed()
 
     def click_reject_button(self):
         self.logger.info("Rejecting cookie consent if dialog is shown")
-        btn = self._first_clickable(
-            self._REJECT_COOKIE_LOCATORS,
-            min(20, float(self.driver_wait_sec)),
-        )
+        btn = self._first_clickable(self._REJECT_COOKIE_LOCATORS, min(20, float(self.driver_wait_sec)))
         if btn:
             try:
                 utils.highlight_element(self.driver, btn)
@@ -296,7 +304,7 @@ class HomePage:
                 self.logger.info("Dismissed cookie consent (reject)")
                 utils.randomSleep(Speed.FAST)
             except Exception as e:
-                self.logger.warning(f"Reject cookies click failed: {e}")
+                self.logger.warning(f"Reject cookies click failed: {utils.clean_error(e)}")
         else:
             self.logger.info("No cookie consent dialog to dismiss")
         self.is_displayed()

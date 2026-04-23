@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 import psycopg2
 import subprocess
 import os
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'tuberipper-dev-secret')
@@ -32,9 +33,13 @@ def ensure_tables():
         CREATE TABLE IF NOT EXISTS schedule (
             id INTEGER PRIMARY KEY DEFAULT 1,
             interval_minutes INTEGER NOT NULL DEFAULT 60,
-            enabled BOOLEAN NOT NULL DEFAULT TRUE
+            enabled BOOLEAN NOT NULL DEFAULT TRUE,
+            run_count INTEGER NOT NULL DEFAULT 0,
+            last_run_at TIMESTAMP
         )
     """)
+    cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS run_count INTEGER NOT NULL DEFAULT 0")
+    cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP")
     cur.execute("""
         INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, 60, TRUE)
         ON CONFLICT (id) DO NOTHING
@@ -44,17 +49,49 @@ def ensure_tables():
     conn.close()
 
 
+def _count_log_errors():
+    log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
+    count = 0
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, 'r', errors='ignore') as f:
+                for line in f:
+                    if ' ERROR' in line:
+                        count += 1
+    except OSError:
+        pass
+    return count
+
+
 @app.route('/')
 def index():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT id, channel, scrap_streams, scrap_videos FROM channels ORDER BY id")
     channels = cur.fetchall()
-    cur.execute("SELECT interval_minutes, enabled FROM schedule WHERE id = 1")
+    cur.execute("SELECT interval_minutes, enabled, run_count, last_run_at FROM schedule WHERE id = 1")
     schedule = cur.fetchone()
+    cur.execute("SELECT COUNT(*) FROM rips")
+    total_rips = cur.fetchone()[0]
     cur.close()
     conn.close()
-    return render_template('index.html', channels=channels, schedule=schedule)
+
+    next_fire = None
+    if schedule and schedule[1] and schedule[3]:
+        nf = schedule[3] + timedelta(minutes=schedule[0])
+        if nf > datetime.utcnow():
+            next_fire = nf.strftime('%H:%M:%S')
+        else:
+            next_fire = 'Soon'
+
+    stats = {
+        'next_fire': next_fire or ('Disabled' if schedule and not schedule[1] else 'Soon'),
+        'run_count': schedule[2] if schedule else 0,
+        'total_rips': total_rips,
+        'error_count': _count_log_errors(),
+    }
+
+    return render_template('index.html', channels=channels, schedule=schedule, stats=stats)
 
 
 @app.route('/add', methods=['POST'])

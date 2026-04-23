@@ -37,6 +37,18 @@ _schedule_table = '''CREATE TABLE IF NOT EXISTS schedule
                       enabled BOOLEAN NOT NULL DEFAULT TRUE)'''
 
 
+def _migrate(conn):
+    """Add columns introduced after initial schema creation."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS run_count INTEGER NOT NULL DEFAULT 0")
+            cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP")
+            conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        logging.error(f"Migration error: {e}")
+
+
 def init_database():
     logging.info("Initialising Psql DB connection")
     conn = psycopg2.connect(**db_connection_params)
@@ -45,6 +57,7 @@ def init_database():
         _create_table(conn, _channels_table)
         _create_table(conn, _schedule_table)
         _seed_schedule(conn)
+        _migrate(conn)
     else:
         logging.error("Error! cannot create the database connection.")
     return conn
@@ -134,12 +147,24 @@ def _seed_schedule(conn):
 def get_schedule(conn):
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT interval_minutes, enabled FROM schedule WHERE id = 1")
+            cur.execute("SELECT interval_minutes, enabled, run_count, last_run_at FROM schedule WHERE id = 1")
             row = cur.fetchone()
-            return {"interval_minutes": row[0], "enabled": row[1]}
+            return {"interval_minutes": row[0], "enabled": row[1], "run_count": row[2], "last_run_at": row[3]}
     except psycopg2.Error as e:
         logging.error(f"Error fetching schedule: {e}")
-        return {"interval_minutes": 60, "enabled": True}
+        return {"interval_minutes": 60, "enabled": True, "run_count": 0, "last_run_at": None}
+
+
+def increment_run_count(conn):
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE schedule SET run_count = run_count + 1, last_run_at = NOW() WHERE id = 1
+            """)
+            conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        logging.error(f"Error incrementing run count: {e}")
 
 
 def upsert_schedule(conn, interval_minutes, enabled):

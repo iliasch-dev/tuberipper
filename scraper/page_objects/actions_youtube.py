@@ -41,7 +41,9 @@ class ActionYoutube:
                         self.home_page.is_live_tab_dispalyed()
                         if not self.home_page.is_live_ring_present():
                             video_id = self.home_page.get_first_thumbnail()
-                            if not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
+                            if not video_id:
+                                logging.warning(f"Could not resolve video ID for streams tab of {channel['channel']}, skipping")
+                            elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                                 logging.info(f"Stream with video id:{video_id} not scrapped, proceeding to scrap stream")
                                 url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
                                 result = utils.scrap_audio(url, channel['channel'], ytl_dlp_client)
@@ -64,7 +66,9 @@ class ActionYoutube:
                         self.home_page.navigate_to_channel_page(channel['channel'], Type.VIDEO.value)
                         self.home_page.is_videos_tab_dispalyed()
                         video_id = self.home_page.get_first_thumbnail()
-                        if not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
+                        if not video_id:
+                            logging.warning(f"Could not resolve video ID for videos tab of {channel['channel']}, skipping")
+                        elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                             logging.info(f"Video with video id:{video_id} not scrapped, proceeding to scrap video")
                             url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
                             result = utils.scrap_audio(url, channel['channel'], ytl_dlp_client)
@@ -85,6 +89,6 @@ class ActionYoutube:
 
                     time.sleep(5)
                 except Exception as e:
-                    logging.error(f"Error occured while processing channel {channel['channel']}: {e}")
+                    logging.error(f"Error processing channel {channel['channel']}: {utils.clean_error(e)}")
         else:
             logging.error("No channels found or an error occurred.")

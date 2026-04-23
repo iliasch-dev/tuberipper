@@ -21,6 +21,12 @@ PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"
 PUSHOVER_USER_KEY = "REDACTED_USER_KEY"
 
+def clean_error(e):
+    """Return a single-line error summary, stripping Selenium's verbose Stacktrace block."""
+    msg = str(e).split('\nStacktrace:')[0].strip()
+    return f"{type(e).__name__}: {msg}" if msg else type(e).__name__
+
+
 def load_config(filename):
     with open(filename, "r") as file:
         return json.load(file)

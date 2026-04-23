@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: tuberip
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  webapp:
+    build: ./webapp
+    ports:
+      - "5000:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_NAME: tuberip
+      DB_USER: postgres
+      DB_PASS: changeme
+      DB_HOST: db
+    restart: unless-stopped
+
+  scraper:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./cookies:/app/cookies
+      - ./screencap:/app/screencap
+      - rips:/media/chronalis/tuberipper
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  rips:

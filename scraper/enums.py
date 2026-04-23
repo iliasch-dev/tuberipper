@@ -7,8 +7,8 @@ class Speed(Enum):
 
 
 class Type(Enum):
-    STREAM="streams"
-    VIDEO="videos"
+    STREAM = "streams"
+    VIDEO = "videos"
 
 class Format(Enum):
     VIDEO = "VIDEO",

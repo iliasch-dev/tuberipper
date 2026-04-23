@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tuberipper</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #e8e8e8;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header h1 span { color: #ff4444; }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888;
+      margin-bottom: 1.25rem;
+    }
+
+    /* Flash messages */
+    .flash {
+      background: #3d1a1a;
+      border: 1px solid #ff4444;
+      color: #ff8888;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #666;
+      padding: 0 0.75rem 0.75rem;
+    }
+
+    td {
+      padding: 0.65rem 0.75rem;
+      border-top: 1px solid #242424;
+      vertical-align: middle;
+    }
+
+    tr:hover td { background: #1f1f1f; }
+
+    .channel-name {
+      font-weight: 500;
+      color: #e8e8e8;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.5rem; }
+
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 42px;
+      height: 24px;
+    }
+
+    .toggle input { opacity: 0; width: 0; height: 0; }
+
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #333;
+      border-radius: 24px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .slider::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: #888;
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    input:checked + .slider { background: #1a3a1a; }
+    input:checked + .slider::before { transform: translateX(18px); background: #44cc44; }
+
+    .toggle-label { font-size: 0.82rem; color: #888; user-select: none; }
+
+    /* Buttons */
+    .btn-delete {
+      background: transparent;
+      border: 1px solid #3a1a1a;
+      color: #cc4444;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-delete:hover { background: #3d1a1a; border-color: #ff4444; }
+
+    /* Add form */
+    .add-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .add-form input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      background: #111;
+      border: 1px solid #333;
+      color: #e8e8e8;
+      padding: 0.55rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .add-form input[type="text"]:focus { border-color: #ff4444; }
+    .add-form input[type="text"]::placeholder { color: #555; }
+
+    .add-form .checks {
+      display: flex;
+      gap: 1.25rem;
+      align-items: center;
+    }
+
+    .add-form .checks label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.88rem;
+      color: #aaa;
+      cursor: pointer;
+    }
+
+    .add-form .checks input[type="checkbox"] {
+      accent-color: #ff4444;
+      width: 15px;
+      height: 15px;
+    }
+
+    .btn-add {
+      background: #ff4444;
+      border: none;
+      color: #fff;
+      padding: 0.55rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-add:hover { background: #e03333; }
+
+    .empty-state {
+      text-align: center;
+      color: #555;
+      font-size: 0.9rem;
+      padding: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="#ff4444">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/>
+    </svg>
+    <h1>Tube<span>ripper</span></h1>
+  </header>
+
+  {% for msg in get_flashed_messages() %}
+    <div class="flash">{{ msg }}</div>
+  {% endfor %}
+
+  <!-- Channel list -->
+  <div class="card">
+    <h2>Channels</h2>
+    {% if channels %}
+    <table>
+      <thead>
+        <tr>
+          <th>Channel</th>
+          <th>Livestreams</th>
+          <th>Videos</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for id, channel, scrap_streams, scrap_videos in channels %}
+        <tr>
+          <td class="channel-name">{{ channel }}</td>
+
+          <!-- Streams toggle -->
+          <td>
+            <form method="POST" action="/update/{{ id }}" id="form-streams-{{ id }}">
+              <input type="hidden" name="scrap_videos" value="{{ 'on' if scrap_videos else '' }}" id="hid-videos-{{ id }}">
+              <div class="toggle-wrap">
+                <label class="toggle">
+                  <input type="checkbox" name="scrap_streams"
+                    {% if scrap_streams %}checked{% endif %}
+                    onchange="syncAndSubmit({{ id }}, 'streams')">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </form>
+          </td>
+
+          <!-- Videos toggle -->
+          <td>
+            <form method="POST" action="/update/{{ id }}" id="form-videos-{{ id }}">
+              <input type="hidden" name="scrap_streams" value="{{ 'on' if scrap_streams else '' }}" id="hid-streams-{{ id }}">
+              <div class="toggle-wrap">
+                <label class="toggle">
+                  <input type="checkbox" name="scrap_videos"
+                    {% if scrap_videos %}checked{% endif %}
+                    onchange="syncAndSubmit({{ id }}, 'videos')">
+                  <span class="slider"></span>
+                </label>
+              </div>
+            </form>
+          </td>
+
+          <!-- Delete -->
+          <td>
+            <form method="POST" action="/delete/{{ id }}"
+                  onsubmit="return confirm('Remove {{ channel }}?')">
+              <button class="btn-delete" type="submit">Remove</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="empty-state">No channels yet — add one below.</p>
+    {% endif %}
+  </div>
+
+  <!-- Add channel -->
+  <div class="card">
+    <h2>Add Channel</h2>
+    <form class="add-form" method="POST" action="/add">
+      <input type="text" name="channel" placeholder="e.g. @MrBeast or UCxxxxxx" required>
+      <div class="checks">
+        <label><input type="checkbox" name="scrap_streams" checked> Livestreams</label>
+        <label><input type="checkbox" name="scrap_videos" checked> Videos</label>
+      </div>
+      <button class="btn-add" type="submit">Add</button>
+    </form>
+  </div>
+
+  <script>
+    // When a toggle changes, mirror its current state into the sibling form's hidden input,
+    // then submit that sibling form so both flags are always sent together.
+    function syncAndSubmit(id, changed) {
+      if (changed === 'streams') {
+        // streams form was changed; before submitting, sync videos hidden field
+        const videosChecked = document.querySelector('#form-videos-' + id + ' input[name="scrap_videos"]').checked;
+        document.getElementById('hid-videos-' + id).value = videosChecked ? 'on' : '';
+        document.getElementById('form-streams-' + id).submit();
+      } else {
+        // videos form was changed; sync streams hidden field
+        const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;
+        document.getElementById('hid-streams-' + id).value = streamsChecked ? 'on' : '';
+        document.getElementById('form-videos-' + id).submit();
+      }
+    }
+  </script>
+
+</body>
+</html>

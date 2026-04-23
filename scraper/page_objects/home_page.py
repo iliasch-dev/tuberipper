@@ -4,11 +4,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 import time
-
-import utils
-from enums import Speed
-from enums import Type
 import re
+
+from .. import utils
+from ..enums import Speed, Type
+
 
 class HomePage:
 
@@ -69,15 +69,14 @@ class HomePage:
         (By.CSS_SELECTOR, "a#thumbnail[href*='watch?v=']"),
     )
 
-    def __init__(self, logger, driver,db_conn):
+    def __init__(self, logger, driver, db_conn):
         self.logger = logger
         self.driver = driver
         self.db_conn = db_conn
 
         self.first_column_row_thumbnail = (By.CSS_SELECTOR, "a#thumbnail img.ytCoreImageHost")
         self.sign_in_button = (By.CSS_SELECTOR, 'span[role="text"]:contains("Sign in")')
-        self.live_ring= (By.CLASS_NAME, "yt-spec-avatar-shape--live-ring")
-
+        self.live_ring = (By.CLASS_NAME, "yt-spec-avatar-shape--live-ring")
 
     def is_displayed(self):
         try:
@@ -85,29 +84,28 @@ class HomePage:
                 self.logger.info("Navigated to Youtube Homepage as anonymous user")
                 return True
             self.logger.error("YouTube page shell not detected")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_display_failed.png")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_display_failed.png")
             return False
         except Exception as e:
             self.logger.error(f"Error displaying Youtube page: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_display_failed.png")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_display_failed.png")
             return False
 
     def navigate_to_youtube(self):
         url = self.config['YOUTUBE_URL']
-        self.logger.info(f"Accessing Youtube url:{url}" )
+        self.logger.info(f"Accessing Youtube url:{url}")
         try:
             self.driver.get(url)
         except Exception as e:
             self.logger.error(f"Error navigating to Youtube: {e}")
-            
-    
-    def navigate_to_channel_page(self,channel,type):      
+
+    def navigate_to_channel_page(self, channel, type):
         url = f"{self.config['YOUTUBE_URL']}{channel}/{type}"
-        self.logger.info(f"Accessing Youtube channel url:{url}" )
-        try: 
+        self.logger.info(f"Accessing Youtube channel url:{url}")
+        try:
             self.driver.get(url)
-        except Exception as e: 
-            self.logger.error(f"Error navigating to Youtube: {e}") 
+        except Exception as e:
+            self.logger.error(f"Error navigating to Youtube: {e}")
 
     def _nudge_lazy_channel_content(self):
         try:
@@ -198,7 +196,7 @@ class HomePage:
             return True
         except Exception as e:
             self.logger.error(f"Error displaying Live Tab: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_live_tab_navigation_failed.png")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_live_tab_navigation_failed.png")
             return False
 
     def is_videos_tab_dispalyed(self):
@@ -218,9 +216,8 @@ class HomePage:
             return True
         except Exception as e:
             self.logger.error(f"Error displaying Videos Tab: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_videos_tab_navigation_failed.png")
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_videos_tab_navigation_failed.png")
             return False
-        
 
     def get_first_thumbnail(self):
         try:
@@ -254,19 +251,19 @@ class HomePage:
             return video_id
         except Exception as e:
             self.logger.error(f"Error displaying First thumbnail: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_first_thumbnail_display_failed.png")
-
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_display_failed.png")
 
     def click_first_thumbnail(self):
-        try:  
-            thumbnail = WebDriverWait(self.driver, self.driver_wait_sec).until(EC.visibility_of_element_located(self.first_column_row_thumbnail))
+        try:
+            thumbnail = WebDriverWait(self.driver, self.driver_wait_sec).until(
+                EC.visibility_of_element_located(self.first_column_row_thumbnail)
+            )
             utils.highlight_element(self.driver, thumbnail)
             thumbnail.click()
-            self.logger.info(f"Clicked First Thumbnail" )
+            self.logger.info(f"Clicked First Thumbnail")
         except Exception as e:
             self.logger.error(f"Error clicking First thumbnail: {e}")
-            self.driver.save_screenshot(self.screenshot_path + utils.timestamp()+"_homepage_first_thumbnail_click_failed.png")
-        
+            self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_click_failed.png")
 
     def click_accept_button(self):
         self.logger.info("Clicking Accept cookies if consent dialog is shown")
@@ -305,12 +302,13 @@ class HomePage:
         self.is_displayed()
 
     def is_live_ring_present(self):
-        try:  
-            live_ring = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(self.live_ring))
+        try:
+            live_ring = WebDriverWait(self.driver, 5).until(
+                EC.visibility_of_element_located(self.live_ring)
+            )
             if live_ring.is_displayed():
                 self.logger.info("Live-Ring displayed! Seems like a live-stream is in progress!")
                 return True
             return False
         except Exception:
             return False
-

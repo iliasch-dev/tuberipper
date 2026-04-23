@@ -8,16 +8,17 @@ Tuberipper monitors a list of YouTube channels and automatically downloads their
 
 1. The **scraper** runs continuously on a configurable schedule. On each tick it opens YouTube with a stealth Chrome session, checks each configured channel's Videos and/or Streams tab, and grabs the first (newest) item.
 2. If the video ID is not already in the database, it downloads the audio with `yt-dlp`, converts it to MP3 at 192 kbps via `ffmpeg`, embeds the thumbnail and metadata with `eyed3`, validates the duration, and moves the file to the output directory.
-3. The **web UI** (Flask, port 5000) lets you add or remove channels, toggle livestream / video scraping per channel, and set the scraper interval — all without touching the database or restarting containers.
+3. The **web UI** (Flask, port 5000) lets you add or remove channels, toggle livestream / video scraping per channel, set the scraper interval, and view a live stats dashboard (next run time, total runs, videos ripped, error count) and a colour-coded live log viewer — all without touching the database or restarting containers.
 
 ## Fresh install (Docker)
 
 ### Prerequisites
 
 - Docker + Docker Compose
-- YouTube session cookies exported as `cookies/youtube_cookies.txt` (Netscape format)  
-  Run `./refresh_youtube_cookies.sh` after logging into YouTube in Chrome or Firefox.
+- YouTube session cookies exported as `cookies/youtube_cookies.txt` (Netscape format) — run `./refresh_youtube_cookies.sh` after logging into YouTube in Chrome or Firefox
 - A Pushover account and API token (optional — edit `scraper/utils.py` to disable notifications)
+
+> `cookies/` and `logs/` are gitignored and created at runtime — do not commit them.
 
 ### 1 — Clone and create config.json
 
@@ -74,6 +75,7 @@ docker compose up -d --build
 Open **http://localhost:5000** and:
 - Add channels by handle (e.g. `@MrBeast`) or channel ID, toggling **Videos** and/or **Livestreams**
 - Set the scrape **interval** using the scheduler card (presets: 30m, 1h, 2h, 6h, 12h, 24h) and enable/disable the scheduler
+- Monitor the dashboard stats (next run, total runs, videos ripped, errors) and the live log viewer
 
 The scraper runs immediately on startup, then repeats on the configured interval. Schedule changes take effect after the current run finishes — no restart needed.
 
@@ -85,6 +87,8 @@ Downloaded MP3s land in the `rips` Docker volume (mapped to `/media/chronalis/tu
 volumes:
   - /your/local/path:/media/chronalis/tuberipper
 ```
+
+Scraper logs are written to `./logs/tuberipper.log` on the host (bind-mounted into both the scraper and webapp containers) and streamed live in the web UI.
 
 ## Running without Docker
 

@@ -279,6 +279,47 @@
 
     .status-dot.on  { background: #44cc44; box-shadow: 0 0 6px #44cc44; }
     .status-dot.off { background: #555; }
+
+    /* Log viewer */
+    .log-box {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 6px;
+      height: 340px;
+      overflow-y: auto;
+      padding: 0.75rem;
+      font-family: 'Cascadia Code', 'Fira Mono', 'Consolas', monospace;
+      font-size: 0.78rem;
+      line-height: 1.6;
+    }
+
+    .log-line { white-space: pre-wrap; word-break: break-all; }
+    .log-line.info    { color: #44cc44; }
+    .log-line.error   { color: #ff4444; }
+    .log-line.warning { color: #ff9900; }
+    .log-line.default { color: #666; }
+
+    .log-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .log-header h2 { margin-bottom: 0; }
+
+    .btn-clear {
+      background: transparent;
+      border: 1px solid #333;
+      color: #666;
+      padding: 0.25rem 0.65rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-clear:hover { color: #aaa; border-color: #555; }
   </style>
 </head>
 <body>
@@ -403,9 +444,41 @@
     </form>
   </div>
 
+  <!-- Log viewer -->
+  <div class="card">
+    <div class="log-header">
+      <h2>Scraper Log</h2>
+      <button class="btn-clear" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+
   <script>
     // When a toggle changes, mirror its current state into the sibling form's hidden input,
     // then submit that sibling form so both flags are always sent together.
+    const logBox = document.getElementById('log-box');
+    const source = new EventSource('/logs/stream');
+
+    source.onmessage = function(e) {
+      const line = e.data;
+      const div = document.createElement('div');
+      div.className = 'log-line ' + classForLine(line);
+      div.textContent = line;
+      logBox.appendChild(div);
+      logBox.scrollTop = logBox.scrollHeight;
+    };
+
+    function classForLine(line) {
+      if (line.includes(' ERROR'))   return 'error';
+      if (line.includes(' WARNING')) return 'warning';
+      if (line.includes(' INFO'))    return 'info';
+      return 'default';
+    }
+
+    function clearLog() {
+      logBox.innerHTML = '';
+    }
+
     function setInterval(mins) {
       document.getElementById('interval').value = mins;
     }

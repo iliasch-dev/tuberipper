@@ -26,6 +26,9 @@ services:
       DB_USER: postgres
       DB_PASS: greatcornholio
       DB_HOST: db
+      LOG_PATH: /app/logs/tuberipper.log
+    volumes:
+      - logs:/app/logs
     restart: unless-stopped
 
   scraper:
@@ -33,13 +36,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      LOG_PATH: /app/logs/tuberipper.log
     volumes:
       - ./config.json:/app/config.json:ro
       - ./cookies:/app/cookies
       - ./screencap:/app/screencap
       - rips:/media/chronalis/tuberipper
+      - logs:/app/logs
     restart: unless-stopped
 
 volumes:
   pgdata:
   rips:
+  logs:

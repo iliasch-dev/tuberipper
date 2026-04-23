@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, stream_with_context
 import psycopg2
+import subprocess
 import os
 
 app = Flask(__name__)
@@ -125,6 +126,36 @@ def update_schedule():
     return redirect(url_for('index'))
 
 
+@app.route('/logs/stream')
+def stream_logs():
+    log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
+
+    def generate():
+        proc = None
+        try:
+            if not os.path.exists(log_path):
+                yield "data: Waiting for scraper to start...\n\n"
+            proc = subprocess.Popen(
+                ['tail', '-n', '100', '-f', log_path],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            for line in proc.stdout:
+                yield f"data: {line.rstrip()}\n\n"
+        except GeneratorExit:
+            pass
+        finally:
+            if proc:
+                proc.terminate()
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'}
+    )
+
+
 if __name__ == '__main__':
     ensure_tables()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

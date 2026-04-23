@@ -11,11 +11,14 @@ from . import utils
 import selenium
 import random
 import logging
+import os
 import tempfile
 from datetime import datetime
 
 
-logging.basicConfig(filename='tuberipper.log', level=logging.INFO, format='%(asctime)s - TUBERIPPER MAIN - %(levelname)s: %(message)s')
+log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
+os.makedirs(os.path.dirname(log_path), exist_ok=True) if os.path.dirname(log_path) else None
+logging.basicConfig(filename=log_path, level=logging.INFO, format='%(asctime)s - TUBERIPPER MAIN - %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 config = utils.load_config("config.json")

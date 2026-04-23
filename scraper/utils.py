@@ -200,7 +200,10 @@ def sanitize_title(name, replace_with="_", ascii_only=False):
     return name.strip().strip(replace_with)
 
 def grab_video_info(url):
-    ydl_opts_info = {}
+    ydl_opts_info = {
+        'ignore_no_formats_error': True,
+        'quiet': True,
+    }
     ydl_opts_info.update(_yt_dlp_common_options())
     video_title = ""
     video_duration = ""
@@ -231,7 +234,7 @@ def scrap_audio(url, channel, yldlp_client):
         audio_filename = f"{channel}_{video_title}"
         audio_filename_ext = f"{channel}_{video_title}.mp3"
         ydl_opts_download = {
-            'format': 'bestaudio/best',
+            'format': 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[ext=mp4]/best',
             'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',

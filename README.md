@@ -1,6 +1,6 @@
-<img width="128" height="128" alt="image" src="https://github.com/user-attachments/assets/919c7d97-831c-4b2f-8163-8cef67cd18b3" />
-
-# Tuberipper
+<div style="display:flex;justify-content:center;align-items:center;height:100vh;">
+  <img width="128" height="128" alt="image" src="https://github.com/user-attachments/assets/919c7d97-831c-4b2f-8163-8cef67cd18b3" />
+</div>
 
 Tuberipper monitors a list of YouTube channels and automatically downloads their latest videos or livestreams as MP3 files. It uses Selenium to navigate YouTube, `yt-dlp` to download and extract audio, and PostgreSQL to track what has already been scraped so nothing is downloaded twice. A lightweight web UI lets you manage channels, toggle scraping preferences, and configure the run schedule. Notifications are sent via Pushover when a new rip completes.
 

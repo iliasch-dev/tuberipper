@@ -39,16 +39,22 @@ Create `config.json` in the project root (it is gitignored):
   "WEBDRIVER_TIMEOUT": "30",
   "COOKIES_PATH": "cookies/",
   "SCREENCAP_PATH": "screencap/",
-  "RIPS_PATH": "/tmp/tuberipper/",
-  "YOUTUBE_URL": "https://www.youtube.com/"
+  "RIPS_PATH": "/media/chronalis/tuberipper/",
+  "YOUTUBE_URL": "https://www.youtube.com/",
+  "PUSHOVER_API_TOKEN": "your-pushover-app-token",
+  "PUSHOVER_USER_KEY": "your-pushover-user-key"
 }
 ```
 
+> Pushover credentials are optional — if omitted, notifications are silently skipped.
+
 > `DB_HOST` must be `"db"` (the Docker service name) and `CHROMEDRIVER_PATH` must be `""` so the system-installed driver is used.
 
-### 2 — Set your database password
+### 2 — Set passwords
 
-The password in `config.json` (`DB_PASS`) must match `POSTGRES_PASSWORD` in `docker-compose.yml`. Set the same value in both.
+- `DB_PASS` in `config.json` must match `POSTGRES_PASSWORD` in `docker-compose.yml`
+- Set `SECRET_KEY` in `docker-compose.yml` to a random string (used for Flask session signing)
+- Set `WEBAPP_PASSWORD` in `docker-compose.yml` to protect the web UI with HTTP Basic Auth (username is ignored — only the password is checked). Leave it empty to disable auth.
 
 ### 3 — Export YouTube cookies
 

@@ -2,10 +2,27 @@ from flask import Flask, render_template, request, redirect, url_for, flash, Res
 import psycopg2
 import subprocess
 import os
+import secrets
+from functools import wraps
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'tuberipper-dev-secret')
+app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+
+_WEBAPP_PASSWORD = os.environ.get('WEBAPP_PASSWORD', '')
+_LOG_PATH = os.environ.get('LOG_PATH', 'tuberipper.log')
+
+
+def _require_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not _WEBAPP_PASSWORD:
+            return f(*args, **kwargs)
+        auth = request.authorization
+        if not auth or not secrets.compare_digest(auth.password, _WEBAPP_PASSWORD):
+            return Response('Unauthorized', 401, {'WWW-Authenticate': 'Basic realm="Tuberipper"'})
+        return f(*args, **kwargs)
+    return decorated
 
 
 def get_db():
@@ -50,11 +67,10 @@ def ensure_tables():
 
 
 def _count_log_errors():
-    log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
     count = 0
     try:
-        if os.path.exists(log_path):
-            with open(log_path, 'r', errors='ignore') as f:
+        if os.path.exists(_LOG_PATH):
+            with open(_LOG_PATH, 'r', errors='ignore') as f:
                 for line in f:
                     if ' ERROR' in line:
                         count += 1
@@ -64,6 +80,7 @@ def _count_log_errors():
 
 
 @app.route('/')
+@_require_auth
 def index():
     conn = get_db()
     cur = conn.cursor()
@@ -95,6 +112,7 @@ def index():
 
 
 @app.route('/add', methods=['POST'])
+@_require_auth
 def add_channel():
     channel = request.form.get('channel', '').strip()
     if not channel:
@@ -115,6 +133,7 @@ def add_channel():
 
 
 @app.route('/update/<int:channel_id>', methods=['POST'])
+@_require_auth
 def update_channel(channel_id):
     scrap_streams = 'scrap_streams' in request.form
     scrap_videos = 'scrap_videos' in request.form
@@ -131,6 +150,7 @@ def update_channel(channel_id):
 
 
 @app.route('/delete/<int:channel_id>', methods=['POST'])
+@_require_auth
 def delete_channel(channel_id):
     conn = get_db()
     cur = conn.cursor()
@@ -142,13 +162,14 @@ def delete_channel(channel_id):
 
 
 @app.route('/schedule/update', methods=['POST'])
+@_require_auth
 def update_schedule():
     try:
         interval_minutes = int(request.form.get('interval_minutes', 60))
-        if interval_minutes < 1:
+        if not (1 <= interval_minutes <= 10080):
             raise ValueError
     except ValueError:
-        flash('Interval must be a positive number.', 'error')
+        flash('Interval must be between 1 and 10080 minutes (1 week max).', 'error')
         return redirect(url_for('index'))
     enabled = 'enabled' in request.form
     conn = get_db()
@@ -164,16 +185,15 @@ def update_schedule():
 
 
 @app.route('/logs/stream')
+@_require_auth
 def stream_logs():
-    log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
-
     def generate():
         proc = None
         try:
-            if not os.path.exists(log_path):
+            if not os.path.exists(_LOG_PATH):
                 yield "data: Waiting for scraper to start...\n\n"
             proc = subprocess.Popen(
-                ['tail', '-n', '100', '-f', log_path],
+                ['tail', '-n', '100', '-f', _LOG_PATH],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
                 text=True

@@ -12,6 +12,7 @@ import selenium
 import random
 import logging
 import os
+import shutil
 import tempfile
 from datetime import datetime
 
@@ -35,13 +36,12 @@ def _initialize_stealthy_driver():
     with open('user_agents.txt', 'r') as file:
         for line in file:
             user_agents.append(line.strip())
-    user_data_dir = tempfile.mkdtemp(".selenium")
+    user_data_dir = tempfile.mkdtemp(suffix=".selenium")
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
     chrome_options.add_argument(f"--user-agent={random.choice(user_agents)}")
     chrome_options.add_argument("--disable-infobars")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--disable-external-intent-requests")
-    chrome_options.add_argument("--disable-web-security")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -57,13 +57,13 @@ def _initialize_stealthy_driver():
         driver = webdriver.Chrome(service=service, options=chrome_options)
     else:
         driver = webdriver.Chrome(options=chrome_options)
-    return driver
+    return driver, user_data_dir
 
 
 def _run_scrape():
     logger.info("Starting scrape run")
     db_conn = db_client.init_database()
-    driver = _initialize_stealthy_driver()
+    driver, user_data_dir = _initialize_stealthy_driver()
     try:
         logger.info(f"Selenium version: {selenium.__version__}")
         logger.info("Chromedriver version: %s", driver.capabilities['chrome']['chromedriverVersion'])
@@ -72,6 +72,7 @@ def _run_scrape():
     finally:
         db_conn.close()
         driver.quit()
+        shutil.rmtree(user_data_dir, ignore_errors=True)
         logger.info("Scrape run complete")
 
 

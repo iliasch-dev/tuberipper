@@ -18,8 +18,6 @@ import re
 import unicodedata
 
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
-PUSHOVER_API_TOKEN = "REDACTED_API_TOKEN"
-PUSHOVER_USER_KEY = "REDACTED_USER_KEY"
 
 def clean_error(e):
     """Return a single-line error summary, stripping Selenium's verbose Stacktrace block."""
@@ -149,7 +147,7 @@ def download_thumbnail(url):
             "Pragma": "no-cache",
             "Expires": "0"
         }
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
         original_image = Image.open(BytesIO(response.content)).convert("RGB")
         jpeg_data = BytesIO()
@@ -261,7 +259,7 @@ def scrap_audio(url, channel, yldlp_client):
         duration_tolerance = 10
         if abs(video_duration - audio_duration) <= duration_tolerance:
             logging.info("Durations match!")
-            target_dir = "/media/chronalis/tuberipper/"
+            target_dir = config["RIPS_PATH"]
             if not os.path.exists(target_dir):
                 os.makedirs(target_dir)
                 logging.info(f"Target directory '{target_dir}' created.")
@@ -303,22 +301,27 @@ def download_audio_using_pytube(youtube_url, channel, output_path="scraps"):
 
 
 def send_pushover_notification(message, image_url):
+    api_token = config.get("PUSHOVER_API_TOKEN", "")
+    user_key = config.get("PUSHOVER_USER_KEY", "")
+    if not api_token or not user_key:
+        logging.info("Pushover credentials not configured — skipping notification")
+        return
     try:
         logging.info(f"Downloading thumbnail:{image_url}")
-        image_response = requests.get(image_url)
+        image_response = requests.get(image_url, timeout=15)
         if image_response.status_code != 200:
-            logging.error("❌ Failed to download image.")
+            logging.error("Failed to download image.")
             return
         image_file = BytesIO(image_response.content)
         image_file.name = "image.jpg"
         files = {"attachment": image_file}
         data = {
-            "token": PUSHOVER_API_TOKEN,
-            "user": PUSHOVER_USER_KEY,
+            "token": api_token,
+            "user": user_key,
             "message": message,
             "sound": "intermission"
         }
-        response = requests.post(PUSHOVER_API_URL, data=data, files=files)
+        response = requests.post(PUSHOVER_API_URL, data=data, files=files, timeout=15)
         if response.status_code == 200:
             logging.info("✅ Notification sent successfully.")
         else:

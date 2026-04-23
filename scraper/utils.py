@@ -223,7 +223,7 @@ def grab_video_info(url):
     return video_title, video_duration, video_thumbnail_url
 
 
-def scrap_audio(url, channel, yldlp_client):
+def scrap_audio(url, channel):
     video_title, video_duration, video_thumbnail_url = grab_video_info(url)
     if video_title != "":
         logging.info("Converting video to mp3 file")
@@ -234,18 +234,13 @@ def scrap_audio(url, channel, yldlp_client):
         audio_filename = f"{channel}_{video_title}"
         audio_filename_ext = f"{channel}_{video_title}.mp3"
         ydl_opts_download = {
-            'format': 'bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[ext=mp4]/best',
+            'format': 'bestaudio/best',
             'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
             'postprocessors': [{
                 'key': 'FFmpegExtractAudio',
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'extractor_args': {
-                'youtube': {
-                    'client': [yldlp_client]
-                }
-            },
             'quiet': True
         }
         ydl_opts_download.update(_yt_dlp_common_options())

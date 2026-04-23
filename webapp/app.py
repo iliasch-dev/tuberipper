@@ -4,7 +4,10 @@ import subprocess
 import os
 import secrets
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+
+_TZ = ZoneInfo('Europe/Athens')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
@@ -121,9 +124,9 @@ def index():
 
     next_fire = None
     if schedule and schedule[1] and schedule[3]:
-        nf = schedule[3] + timedelta(minutes=schedule[0])
-        if nf > datetime.utcnow():
-            next_fire = nf.strftime('%H:%M:%S')
+        nf_utc = schedule[3].replace(tzinfo=timezone.utc) + timedelta(minutes=schedule[0])
+        if nf_utc > datetime.now(timezone.utc):
+            next_fire = nf_utc.astimezone(_TZ).strftime('%H:%M:%S')
         else:
             next_fire = 'Soon'
 

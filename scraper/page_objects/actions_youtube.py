@@ -4,11 +4,10 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import WebDriverException
 from selenium.common.exceptions import StaleElementReferenceException
 
-from ..enums import Speed, Type, Ytl_Dlp_Clients, Format
+from ..enums import Type, Format
 from .. import utils
 from .. import db_client
 
-import random
 import logging
 import time
 
@@ -30,8 +29,6 @@ class ActionYoutube:
         self.home_page.navigate_to_youtube()
         self.home_page.click_reject_button()
         channels = db_client.get_all_channels(self.db_conn)
-        ytl_dlp_client = random.choice(list(Ytl_Dlp_Clients)).value
-        logging.info(f"Picking YT-DLP client: {ytl_dlp_client}")
         if channels is not None:
             for channel in channels:
                 try:
@@ -46,7 +43,7 @@ class ActionYoutube:
                             elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                                 logging.info(f"Stream with video id:{video_id} not scrapped, proceeding to scrap stream")
                                 url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
-                                result = utils.scrap_audio(url, channel['channel'], ytl_dlp_client)
+                                result = utils.scrap_audio(url, channel['channel'])
                                 if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                                     logging.info("Saving rip data in DB")
                                     db_client.insert_rip_record(
@@ -71,7 +68,7 @@ class ActionYoutube:
                         elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                             logging.info(f"Video with video id:{video_id} not scrapped, proceeding to scrap video")
                             url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
-                            result = utils.scrap_audio(url, channel['channel'], ytl_dlp_client)
+                            result = utils.scrap_audio(url, channel['channel'])
                             if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                                 logging.info("Saving rip data in DB")
                                 db_client.insert_rip_record(

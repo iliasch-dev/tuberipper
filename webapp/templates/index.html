@@ -559,9 +559,9 @@
       const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;
       const videosChecked  = document.querySelector('#form-videos-'  + id + ' input[name="scrap_videos"]').checked;
       const body = new URLSearchParams();
-      body.append('scrap_streams', streamsChecked ? 'on' : '');
-      body.append('scrap_videos',  videosChecked  ? 'on' : '');
-      fetch('/update/' + id, { method: 'POST', body: body });
+      if (streamsChecked) body.append('scrap_streams', 'on');
+      if (videosChecked)  body.append('scrap_videos',  'on');
+      navigator.sendBeacon('/update/' + id, body);
     }
   </script>
 

@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     xvfb \
     curl \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Deno

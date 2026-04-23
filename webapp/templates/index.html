@@ -203,6 +203,82 @@
       font-size: 0.9rem;
       padding: 2rem 0;
     }
+
+    /* Schedule */
+    .schedule-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .schedule-form .field {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      color: #aaa;
+    }
+
+    .schedule-form input[type="number"] {
+      width: 80px;
+      background: #111;
+      border: 1px solid #333;
+      color: #e8e8e8;
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .schedule-form input[type="number"]:focus { border-color: #ff4444; }
+
+    .presets {
+      display: flex;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    .preset-btn {
+      background: #222;
+      border: 1px solid #333;
+      color: #aaa;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .preset-btn:hover { background: #2a2a2a; color: #e8e8e8; }
+
+    .btn-save {
+      background: #ff4444;
+      border: none;
+      color: #fff;
+      padding: 0.55rem 1.25rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    .btn-save:hover { background: #e03333; }
+
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.4rem;
+    }
+
+    .status-dot.on  { background: #44cc44; box-shadow: 0 0 6px #44cc44; }
+    .status-dot.off { background: #555; }
   </style>
 </head>
 <body>
@@ -217,6 +293,38 @@
   {% for msg in get_flashed_messages() %}
     <div class="flash">{{ msg }}</div>
   {% endfor %}
+
+  <!-- Schedule -->
+  <div class="card">
+    <h2>
+      <span class="status-dot {{ 'on' if schedule and schedule[1] else 'off' }}"></span>
+      Scheduler
+    </h2>
+    <form class="schedule-form" method="POST" action="/schedule/update">
+      <div class="field">
+        <label for="interval">Every</label>
+        <input type="number" id="interval" name="interval_minutes" min="1"
+               value="{{ schedule[0] if schedule else 60 }}" required>
+        <span>minutes</span>
+      </div>
+      <div class="presets">
+        <button type="button" class="preset-btn" onclick="setInterval(30)">30m</button>
+        <button type="button" class="preset-btn" onclick="setInterval(60)">1h</button>
+        <button type="button" class="preset-btn" onclick="setInterval(120)">2h</button>
+        <button type="button" class="preset-btn" onclick="setInterval(360)">6h</button>
+        <button type="button" class="preset-btn" onclick="setInterval(720)">12h</button>
+        <button type="button" class="preset-btn" onclick="setInterval(1440)">24h</button>
+      </div>
+      <div class="field">
+        <label class="toggle">
+          <input type="checkbox" name="enabled" {% if not schedule or schedule[1] %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+        <span>Enabled</span>
+      </div>
+      <button class="btn-save" type="submit">Save</button>
+    </form>
+  </div>
 
   <!-- Channel list -->
   <div class="card">
@@ -298,6 +406,10 @@
   <script>
     // When a toggle changes, mirror its current state into the sibling form's hidden input,
     // then submit that sibling form so both flags are always sent together.
+    function setInterval(mins) {
+      document.getElementById('interval').value = mins;
+    }
+
     function syncAndSubmit(id, changed) {
       if (changed === 'streams') {
         // streams form was changed; before submitting, sync videos hidden field

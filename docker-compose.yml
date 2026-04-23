@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: tuberip
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_PASSWORD: greatcornholio
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -24,7 +24,7 @@ services:
     environment:
       DB_NAME: tuberip
       DB_USER: postgres
-      DB_PASS: changeme
+      DB_PASS: greatcornholio
       DB_HOST: db
     restart: unless-stopped
 

@@ -31,6 +31,11 @@ _channels_table = '''CREATE TABLE IF NOT EXISTS channels
                       scrap_streams BOOLEAN,
                       scrap_videos BOOLEAN)'''
 
+_schedule_table = '''CREATE TABLE IF NOT EXISTS schedule
+                      (id INTEGER PRIMARY KEY DEFAULT 1,
+                      interval_minutes INTEGER NOT NULL DEFAULT 60,
+                      enabled BOOLEAN NOT NULL DEFAULT TRUE)'''
+
 
 def init_database():
     logging.info("Initialising Psql DB connection")
@@ -38,6 +43,8 @@ def init_database():
     if conn is not None:
         _create_table(conn, _rips_table)
         _create_table(conn, _channels_table)
+        _create_table(conn, _schedule_table)
+        _seed_schedule(conn)
     else:
         logging.error("Error! cannot create the database connection.")
     return conn
@@ -113,3 +120,36 @@ def insert_rip_record(conn, channel, video_title, duration, media_format, media_
     except Exception as e:
         conn.rollback()
         logging.error(f"❌ Error inserting rip record: {e}")
+
+
+def _seed_schedule(conn):
+    try:
+        with conn.cursor() as cur:
+            cur.execute("INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, 60, TRUE) ON CONFLICT (id) DO NOTHING")
+            conn.commit()
+    except psycopg2.Error as e:
+        logging.error(f"Error seeding schedule: {e}")
+
+
+def get_schedule(conn):
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT interval_minutes, enabled FROM schedule WHERE id = 1")
+            row = cur.fetchone()
+            return {"interval_minutes": row[0], "enabled": row[1]}
+    except psycopg2.Error as e:
+        logging.error(f"Error fetching schedule: {e}")
+        return {"interval_minutes": 60, "enabled": True}
+
+
+def upsert_schedule(conn, interval_minutes, enabled):
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET interval_minutes = EXCLUDED.interval_minutes, enabled = EXCLUDED.enabled
+            """, (interval_minutes, enabled))
+            conn.commit()
+    except psycopg2.Error as e:
+        conn.rollback()
+        logging.error(f"Error updating schedule: {e}")

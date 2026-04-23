@@ -2,6 +2,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
+from apscheduler.schedulers.blocking import BlockingScheduler
+
 from .page_objects.actions_youtube import ActionYoutube
 from . import db_client
 from . import utils
@@ -10,7 +12,7 @@ import selenium
 import random
 import logging
 import tempfile
-import time
+from datetime import datetime
 
 
 logging.basicConfig(filename='tuberipper.log', level=logging.INFO, format='%(asctime)s - TUBERIPPER MAIN - %(levelname)s: %(message)s')
@@ -51,20 +53,57 @@ def _initialize_stealthy_driver():
     return driver
 
 
-def main():
-    logger.info("Tuberipper initialized")
+def _run_scrape():
+    logger.info("Starting scrape run")
     db_conn = db_client.init_database()
     driver = _initialize_stealthy_driver()
-    capabilities = driver.capabilities
-    logger.info(f"Selenium version: {selenium.__version__}")
-    logger.info("Chromedriver version: %s", capabilities['chrome']['chromedriverVersion'])
+    try:
+        logger.info(f"Selenium version: {selenium.__version__}")
+        logger.info("Chromedriver version: %s", driver.capabilities['chrome']['chromedriverVersion'])
+        youtube_actions = ActionYoutube(logger, driver, db_conn)
+        youtube_actions.scrap_video_audio()
+    finally:
+        db_conn.close()
+        driver.quit()
+        logger.info("Scrape run complete")
 
-    youtube_actions = ActionYoutube(logger, driver, db_conn)
-    youtube_actions.scrap_video_audio()
 
+def main():
+    logger.info("Tuberipper scheduler starting")
+
+    db_conn = db_client.init_database()
+    schedule = db_client.get_schedule(db_conn)
     db_conn.close()
-    driver.quit()
-    logger.info("That's all folks!")
+
+    scheduler = BlockingScheduler()
+
+    def job():
+        db_conn = db_client.init_database()
+        schedule = db_client.get_schedule(db_conn)
+        db_conn.close()
+
+        if schedule['enabled']:
+            _run_scrape()
+        else:
+            logger.info("Scraper is disabled — skipping run")
+
+        # Re-read interval in case it was changed via the webapp
+        db_conn = db_client.init_database()
+        updated = db_client.get_schedule(db_conn)
+        db_conn.close()
+        scheduler.reschedule_job('scrape', trigger='interval', minutes=updated['interval_minutes'])
+        logger.info(f"Next run in {updated['interval_minutes']} minutes")
+
+    scheduler.add_job(
+        job,
+        trigger='interval',
+        minutes=schedule['interval_minutes'],
+        id='scrape',
+        next_run_time=datetime.now()  # run immediately on startup
+    )
+
+    logger.info(f"Scheduler started — interval: {schedule['interval_minutes']} minutes, enabled: {schedule['enabled']}")
+    scheduler.start()
 
 
 if __name__ == "__main__":

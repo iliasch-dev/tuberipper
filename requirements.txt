@@ -6,3 +6,4 @@ psycopg2-binary
 yt-dlp
 ffmpeg
 eyed3
+apscheduler

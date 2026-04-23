@@ -2,13 +2,13 @@
 
 # Tuberipper
 
-Tuberipper monitors a list of YouTube channels and automatically downloads their latest videos or livestreams as MP3 files. It uses Selenium to navigate YouTube, `yt-dlp` to download and extract audio, and PostgreSQL to track what has already been scraped so nothing is downloaded twice. A lightweight web UI lets you manage which channels to watch and whether to scrape their videos, livestreams, or both. Notifications are sent via Pushover when a new rip completes.
+Tuberipper monitors a list of YouTube channels and automatically downloads their latest videos or livestreams as MP3 files. It uses Selenium to navigate YouTube, `yt-dlp` to download and extract audio, and PostgreSQL to track what has already been scraped so nothing is downloaded twice. A lightweight web UI lets you manage channels, toggle scraping preferences, and configure the run schedule. Notifications are sent via Pushover when a new rip completes.
 
 ## How it works
 
-1. The **scraper** opens YouTube with a stealth Chrome session, checks each configured channel's Videos and/or Streams tab, and grabs the first (newest) item.
+1. The **scraper** runs continuously on a configurable schedule. On each tick it opens YouTube with a stealth Chrome session, checks each configured channel's Videos and/or Streams tab, and grabs the first (newest) item.
 2. If the video ID is not already in the database, it downloads the audio with `yt-dlp`, converts it to MP3 at 192 kbps via `ffmpeg`, embeds the thumbnail and metadata with `eyed3`, validates the duration, and moves the file to the output directory.
-3. The **web UI** (Flask, port 5000) lets you add or remove channels and toggle livestream / video scraping per channel without touching the database directly.
+3. The **web UI** (Flask, port 5000) lets you add or remove channels, toggle livestream / video scraping per channel, and set the scraper interval — all without touching the database or restarting containers.
 
 ## Fresh install (Docker)
 
@@ -32,7 +32,7 @@ Create `config.json` in the project root (it is gitignored):
 {
   "DB_NAME": "tuberip",
   "DB_USER": "postgres",
-  "DB_PASS": "changeme",
+  "DB_PASS": "your-password",
   "DB_HOST": "db",
   "CHROMEDRIVER_PATH": "",
   "WEBDRIVER_TIMEOUT": "30",
@@ -47,7 +47,7 @@ Create `config.json` in the project root (it is gitignored):
 
 ### 2 — Set your database password
 
-The password in `config.json` (`DB_PASS`) must match `POSTGRES_PASSWORD` in `docker-compose.yml`. Change `changeme` in both to the same value.
+The password in `config.json` (`DB_PASS`) must match `POSTGRES_PASSWORD` in `docker-compose.yml`. Set the same value in both.
 
 ### 3 — Export YouTube cookies
 
@@ -67,13 +67,15 @@ docker compose up -d --build
 |---------|---------|------|
 | `db` | PostgreSQL database | internal |
 | `webapp` | Channel management UI | 5000 |
-| `scraper` | YouTube scraper | — |
+| `scraper` | YouTube scraper (long-running) | — |
 
-Open **http://localhost:5000** to add channels before the scraper's first run.
+### 5 — Configure via the web UI
 
-### 5 — Add channels via the web UI
+Open **http://localhost:5000** and:
+- Add channels by handle (e.g. `@MrBeast`) or channel ID, toggling **Videos** and/or **Livestreams**
+- Set the scrape **interval** using the scheduler card (presets: 30m, 1h, 2h, 6h, 12h, 24h) and enable/disable the scheduler
 
-Navigate to `http://localhost:5000`, enter a channel handle (e.g. `@MrBeast`) or channel ID, and toggle whether to scrape **Videos**, **Livestreams**, or both.
+The scraper runs immediately on startup, then repeats on the configured interval. Schedule changes take effect after the current run finishes — no restart needed.
 
 ### 6 — Output
 
@@ -98,8 +100,4 @@ System dependencies required: `chromium`, `chromium-driver`, `ffmpeg`, `deno`.
 python -m scraper.main
 ```
 
-The scraper is designed to be run as a cron job. Example — every hour:
-
-```
-0 * * * * cd /path/to/tuberipper && ./venv/bin/python -m scraper.main >> tuberipper.log 2>&1
-```
+The scraper will run on the interval configured in the database (default 60 minutes). The web UI must be running for schedule changes to take effect.

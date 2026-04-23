@@ -16,7 +16,7 @@ def get_db():
     )
 
 
-def ensure_table():
+def ensure_tables():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
@@ -26,6 +26,17 @@ def ensure_table():
             scrap_streams BOOLEAN NOT NULL DEFAULT FALSE,
             scrap_videos BOOLEAN NOT NULL DEFAULT FALSE
         )
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS schedule (
+            id INTEGER PRIMARY KEY DEFAULT 1,
+            interval_minutes INTEGER NOT NULL DEFAULT 60,
+            enabled BOOLEAN NOT NULL DEFAULT TRUE
+        )
+    """)
+    cur.execute("""
+        INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, 60, TRUE)
+        ON CONFLICT (id) DO NOTHING
     """)
     conn.commit()
     cur.close()
@@ -38,9 +49,11 @@ def index():
     cur = conn.cursor()
     cur.execute("SELECT id, channel, scrap_streams, scrap_videos FROM channels ORDER BY id")
     channels = cur.fetchall()
+    cur.execute("SELECT interval_minutes, enabled FROM schedule WHERE id = 1")
+    schedule = cur.fetchone()
     cur.close()
     conn.close()
-    return render_template('index.html', channels=channels)
+    return render_template('index.html', channels=channels, schedule=schedule)
 
 
 @app.route('/add', methods=['POST'])
@@ -90,6 +103,28 @@ def delete_channel(channel_id):
     return redirect(url_for('index'))
 
 
+@app.route('/schedule/update', methods=['POST'])
+def update_schedule():
+    try:
+        interval_minutes = int(request.form.get('interval_minutes', 60))
+        if interval_minutes < 1:
+            raise ValueError
+    except ValueError:
+        flash('Interval must be a positive number.', 'error')
+        return redirect(url_for('index'))
+    enabled = 'enabled' in request.form
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, %s, %s)
+        ON CONFLICT (id) DO UPDATE SET interval_minutes = EXCLUDED.interval_minutes, enabled = EXCLUDED.enabled
+    """, (interval_minutes, enabled))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect(url_for('index'))
+
+
 if __name__ == '__main__':
-    ensure_table()
+    ensure_tables()
     app.run(host='0.0.0.0', port=5000, debug=False)

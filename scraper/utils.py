@@ -70,7 +70,7 @@ def _yt_dlp_auth_options():
 def _yt_dlp_common_options():
     """Cookies (if configured) + EJS solver from GitHub (requires Deno on PATH)."""
     opts = _yt_dlp_auth_options()
-    opts["remote_components"] = {"ejs:github"}
+    opts["remote_components"] = ["ejs:github"]
     return opts
 
 

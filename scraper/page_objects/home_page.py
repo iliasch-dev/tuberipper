@@ -50,21 +50,24 @@ class HomePage:
     )
 
     # Channel /streams and /videos: tiles lazy-load; img class names change; prefer grid + watch links.
+    # YouTube also uses shelf-based layouts (ytd-rich-shelf-renderer) and compact lists on some channels.
     _CHANNEL_GRID_LOCATORS = (
         (By.CSS_SELECTOR, "#primary ytd-rich-grid-media a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "ytd-rich-grid-media a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "ytd-grid-video-renderer a#thumbnail[href*='watch?v=']"),
+        (By.CSS_SELECTOR, "ytd-rich-item-renderer a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "ytd-rich-grid-media"),
         (By.CSS_SELECTOR, "ytd-grid-video-renderer"),
+        (By.CSS_SELECTOR, "ytd-rich-item-renderer"),
         (By.CSS_SELECTOR, "a#thumbnail img.ytCoreImageHost"),
-        (By.CSS_SELECTOR, "ytd-rich-grid-media a#thumbnail img"),
         (By.CSS_SELECTOR, "a#thumbnail img"),
     )
     _FIRST_VIDEO_LINK_LOCATORS = (
         (By.CSS_SELECTOR, "#primary ytd-rich-grid-media a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "ytd-rich-grid-media a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "ytd-grid-video-renderer a#thumbnail[href*='watch?v=']"),
+        (By.CSS_SELECTOR, "ytd-rich-item-renderer a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "#primary a#thumbnail[href*='watch?v=']"),
         (By.CSS_SELECTOR, "a#thumbnail[href*='watch?v=']"),
     )
@@ -124,8 +127,8 @@ class HomePage:
             if remaining < 2:
                 break
             chunk = min(12, remaining)
-            # Short per-locator waits so every fallback selector gets a turn within the chunk.
-            if self._wait_for_any_locator(self._CHANNEL_GRID_LOCATORS, chunk, per_try_sec=4):
+            # 2s per locator so all 10 fallbacks fit within the 12s chunk.
+            if self._wait_for_any_locator(self._CHANNEL_GRID_LOCATORS, chunk, per_try_sec=2):
                 return
             self.logger.info("Channel grid not ready yet; scroll nudge %s/5", attempt + 1)
             self._nudge_lazy_channel_content()
@@ -227,6 +230,21 @@ class HomePage:
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_videos_tab_navigation_failed.png")
             return False
 
+    def _js_extract_first_video_id(self):
+        """Layout-agnostic fallback: scan all page links for the first watch?v= URL."""
+        try:
+            script = """
+                const links = Array.from(document.querySelectorAll('a[href*="watch?v="]'));
+                for (const a of links) {
+                    const m = (a.href || '').match(/[?&]v=([A-Za-z0-9_-]{11})/);
+                    if (m) return m[1];
+                }
+                return null;
+            """
+            return self.driver.execute_script(script)
+        except Exception:
+            return None
+
     def get_first_thumbnail(self):
         try:
             video_id = None
@@ -258,6 +276,11 @@ class HomePage:
             self.logger.info("First Thumbnail displayed")
             return video_id
         except TimeoutException:
+            self.logger.warning("CSS selectors timed out — trying JS fallback")
+            video_id = self._js_extract_first_video_id()
+            if video_id:
+                self.logger.info("YouTube Video ID (from JS fallback): %s", video_id)
+                return video_id
             self.logger.error("Timed out waiting for first thumbnail — video grid did not load")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_first_thumbnail_display_failed.png")
         except Exception as e:

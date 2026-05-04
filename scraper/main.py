@@ -2,7 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from .page_objects.actions_youtube import ActionYoutube
 from . import db_client
@@ -30,8 +30,15 @@ config = utils.load_config("config.json")
 
 def _initialize_stealthy_driver():
     chromedriver_path = config["CHROMEDRIVER_PATH"]
-    logger.info("Initializing chromedriver")
+    # prefer system chromedriver (Docker) over config path if it doesn't exist locally
+    if not chromedriver_path or not os.path.exists(chromedriver_path):
+        chromedriver_path = shutil.which('chromedriver') or ''
+    logger.info("Initializing chromedriver: %s", chromedriver_path or 'auto')
     chrome_options = Options()
+    # point at system chromium binary when present (Docker apt install)
+    chromium_bin = shutil.which('chromium') or shutil.which('chromium-browser')
+    if chromium_bin:
+        chrome_options.binary_location = chromium_bin
     user_agents = []
     with open('user_agents.txt', 'r') as file:
         for line in file:
@@ -53,7 +60,7 @@ def _initialize_stealthy_driver():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("window-size=1920,1080")
-    if chromedriver_path != "":
+    if chromedriver_path:
         service = Service(executable_path=chromedriver_path)
         driver = webdriver.Chrome(service=service, options=chrome_options)
     else:
@@ -81,14 +88,14 @@ def _run_scrape():
         logger.info("Scrape run complete")
 
 
-def main():
+def start_scheduler():
     logger.info("Tuberipper scheduler starting")
 
     db_conn = db_client.init_database()
     schedule = db_client.get_schedule(db_conn)
     db_conn.close()
 
-    scheduler = BlockingScheduler()
+    scheduler = BackgroundScheduler()
 
     def job():
         try:
@@ -104,7 +111,6 @@ def main():
             else:
                 logger.info("Scraper is disabled — skipping run")
 
-            # Re-read interval in case it was changed via the webapp
             db_conn = db_client.init_database()
             updated = db_client.get_schedule(db_conn)
             db_conn.close()
@@ -118,12 +124,9 @@ def main():
         trigger='interval',
         minutes=schedule['interval_minutes'],
         id='scrape',
-        next_run_time=datetime.now()  # run immediately on startup
+        next_run_time=datetime.now()
     )
 
     logger.info(f"Scheduler started — interval: {schedule['interval_minutes']} minutes, enabled: {schedule['enabled']}")
     scheduler.start()
-
-
-if __name__ == "__main__":
-    main()
+    return scheduler

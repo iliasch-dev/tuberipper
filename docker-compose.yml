@@ -15,7 +15,9 @@ services:
     restart: unless-stopped
 
   webapp:
-    build: ./webapp
+    build:
+      context: .
+      dockerfile: webapp/Dockerfile
     ports:
       - "5002:5000"
     depends_on:
@@ -30,26 +32,14 @@ services:
       SECRET_KEY: dakjdkajdkj2932938
       WEBAPP_USERNAME: admin
       WEBAPP_PASSWORD: flcl@[2254]!
-    volumes:
-      - ./logs:/app/logs
-    restart: unless-stopped
-
-  scraper:
-    build: .
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      LOG_PATH: /app/logs/tuberipper.log
       TZ: Europe/Athens
     volumes:
+      - ./logs:/app/logs
       - ./config.json:/app/config.json:ro
       - ./cookies:/app/cookies
       - ./screencap:/app/screencap
-      - ./logs:/app/logs
-      - rips:/media/chronalis/tuberipper
+      - /media/nefarian/tuberipper:/media/nefarian/tuberipper
     restart: unless-stopped
 
 volumes:
   pgdata:
-  rips:

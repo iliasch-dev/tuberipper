@@ -221,7 +221,7 @@ def scrap_audio(url, channel):
         duration_tolerance = 10
         if abs(video_duration - audio_duration) <= duration_tolerance:
             logging.info("Durations match!")
-            target_dir = "/media/nefarian/tuberipper/"
+            target_dir = config["TARGET_PATH"]
             if not os.path.exists(target_dir):
                 os.makedirs(target_dir)
                 logging.info(f"Target directory '{target_dir}' created.")

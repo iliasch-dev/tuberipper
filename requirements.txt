@@ -1,8 +1,0 @@
-selenium>=4.18,<5
-pillow>=10.2,<11
-requests>=2.31,<3
-psycopg2-binary>=2.9,<3
-yt-dlp>=2024.4
-eyed3>=0.9.7,<0.10
-apscheduler>=3.10,<4
-pytube>=15.0,<16

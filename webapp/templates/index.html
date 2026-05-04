@@ -370,6 +370,25 @@
     }
 
     .btn-clear:hover { color: #999; border-color: #444; }
+
+    /* Latest rips */
+    .rips-filename {
+      font-size: 0.85rem;
+      color: #ccc;
+      word-break: break-all;
+    }
+
+    .rips-channel {
+      font-size: 0.8rem;
+      color: #ff4444;
+      white-space: nowrap;
+    }
+
+    .rips-date {
+      font-size: 0.78rem;
+      color: #555;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -509,6 +528,33 @@
       </form>
     </div>
 
+  </div>
+
+  <!-- Latest Rips -->
+  <div class="card" style="margin-bottom: 0.75rem;">
+    <h2>Latest Rips</h2>
+    {% if latest_rips %}
+    <table>
+      <thead>
+        <tr>
+          <th>File</th>
+          <th>Channel</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for filename, channel, rip_date in latest_rips %}
+        <tr>
+          <td class="rips-filename">{{ filename }}</td>
+          <td class="rips-channel">{{ channel }}</td>
+          <td class="rips-date">{{ rip_date }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p class="empty-state">No rips yet.</p>
+    {% endif %}
   </div>
 
   <!-- Log -->

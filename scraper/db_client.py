@@ -1,16 +1,27 @@
 import psycopg2
 import logging
+import os
 import hashlib
 from . import utils
 
-config = utils.load_config("config.json")
-db_connection_params = {
-    "dbname": config['DB_NAME'],
-    "user": config['DB_USER'],
-    "password": config['DB_PASS'],
-    "host": config['DB_HOST'],
-    # "port": config['DB_PORT']
-}
+def _db_params():
+    if os.environ.get('DB_NAME'):
+        return {
+            "dbname": os.environ['DB_NAME'],
+            "user": os.environ['DB_USER'],
+            "password": os.environ['DB_PASS'],
+            "host": os.environ['DB_HOST'],
+            "port": os.environ.get('DB_PORT', '5432'),
+        }
+    config = utils.load_config("config.json")
+    return {
+        "dbname": config['DB_NAME'],
+        "user": config['DB_USER'],
+        "password": config['DB_PASS'],
+        "host": config['DB_HOST'],
+    }
+
+db_connection_params = _db_params()
 
 _rips_table = '''CREATE TABLE IF NOT EXISTS rips
                       (id SERIAL PRIMARY KEY,
@@ -43,6 +54,7 @@ def _migrate(conn):
         with conn.cursor() as cur:
             cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS run_count INTEGER NOT NULL DEFAULT 0")
             cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP")
+            cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP")
             conn.commit()
     except psycopg2.Error as e:
         conn.rollback()
@@ -159,7 +171,11 @@ def increment_run_count(conn):
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                UPDATE schedule SET run_count = run_count + 1, last_run_at = NOW() WHERE id = 1
+                UPDATE schedule
+                SET run_count = run_count + 1,
+                    last_run_at = NOW(),
+                    next_run_at = NOW() + (interval_minutes * interval '1 minute')
+                WHERE id = 1
             """)
             conn.commit()
     except psycopg2.Error as e:

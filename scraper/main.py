@@ -38,6 +38,7 @@ def _initialize_stealthy_driver():
             user_agents.append(line.strip())
     user_data_dir = tempfile.mkdtemp(suffix=".selenium")
     chrome_options.add_argument(f"--user-data-dir={user_data_dir}")
+    chrome_options.add_argument(f"--crash-dumps-dir={user_data_dir}")
     chrome_options.add_argument(f"--user-agent={random.choice(user_agents)}")
     chrome_options.add_argument("--disable-infobars")
     chrome_options.add_argument("--disable-notifications")
@@ -63,16 +64,20 @@ def _initialize_stealthy_driver():
 def _run_scrape():
     logger.info("Starting scrape run")
     db_conn = db_client.init_database()
-    driver, user_data_dir = _initialize_stealthy_driver()
+    driver = None
+    user_data_dir = None
     try:
+        driver, user_data_dir = _initialize_stealthy_driver()
         logger.info(f"Selenium version: {selenium.__version__}")
         logger.info("Chromedriver version: %s", driver.capabilities['chrome']['chromedriverVersion'])
         youtube_actions = ActionYoutube(logger, driver, db_conn)
         youtube_actions.scrap_video_audio()
     finally:
         db_conn.close()
-        driver.quit()
-        shutil.rmtree(user_data_dir, ignore_errors=True)
+        if driver:
+            driver.quit()
+        if user_data_dir:
+            shutil.rmtree(user_data_dir, ignore_errors=True)
         logger.info("Scrape run complete")
 
 

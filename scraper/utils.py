@@ -6,7 +6,6 @@ import time
 import logging
 import shutil
 
-import yt_dlp
 import subprocess
 import eyed3
 import requests
@@ -32,46 +31,18 @@ def load_config(filename):
 config = load_config("config.json")
 
 
-def _yt_dlp_auth_options():
-    """
-    YouTube often returns a bot check (sign-in required) when yt-dlp has no session cookies.
-    Set YTDLP_COOKIES_FILE to a Netscape-format cookies.txt, or YTDLP_COOKIES_FROM_BROWSER (e.g. chrome, firefox).
-    Alternatively place youtube_cookies.txt or cookies.txt under COOKIES_PATH.
-    See https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies
-    """
-    out = {}
-    cf = config.get("YTDLP_COOKIES_FILE") or config.get("YT_DLP_COOKIES_FILE")
-    if isinstance(cf, str) and cf.strip():
-        path = os.path.abspath(os.path.expanduser(cf.strip()))
-        if os.path.isfile(path):
-            out["cookiefile"] = path
-            logging.info("yt-dlp using cookie file: %s", path)
-            return out
-        logging.warning("YTDLP_COOKIES_FILE set but file not found: %s", path)
 
-    browser = config.get("YTDLP_COOKIES_FROM_BROWSER") or config.get("COOKIES_FROM_BROWSER")
-    if isinstance(browser, str) and browser.strip():
-        out["cookiesfrombrowser"] = (browser.strip().lower(),)
-        logging.info("yt-dlp using cookies from browser: %s", browser.strip().lower())
-        return out
+def _ytdlp_bin():
+    venv_bin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "bin", "yt-dlp")
+    return venv_bin if os.path.isfile(venv_bin) else "yt-dlp"
 
-    folder = config.get("COOKIES_PATH")
-    if isinstance(folder, str) and folder.strip():
-        base = folder.strip().rstrip(os.sep)
-        for fname in ("youtube_cookies.txt", "cookies.txt", "yt_cookies.txt"):
-            path = os.path.abspath(os.path.join(base, fname))
-            if os.path.isfile(path):
-                out["cookiefile"] = path
-                logging.info("yt-dlp using cookie file: %s", path)
-                return out
-    return out
-
-
-def _yt_dlp_common_options():
-    """Cookies (if configured) + EJS solver from GitHub (requires Deno on PATH)."""
-    opts = _yt_dlp_auth_options()
-    opts["remote_components"] = ["ejs:github"]
-    return opts
+_YTDLP_BASE_ARGS = [
+    "--js-runtimes", "node",
+    "--extractor-args", "youtube:player_client=android,web",
+    "--force-ipv4",
+    "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "--add-header", "Accept-Language:en-US,en;q=0.9",
+]
 
 
 def staticSleep(waitTime):
@@ -200,24 +171,21 @@ def sanitize_title(name, replace_with="_", ascii_only=False):
     return name.strip().strip(replace_with)
 
 def grab_video_info(url):
-    ydl_opts_info = {
-        'ignore_no_formats_error': True,
-        'quiet': True,
-    }
-    ydl_opts_info.update(_yt_dlp_common_options())
     video_title = ""
     video_duration = ""
     video_thumbnail_url = ""
     try:
-        with yt_dlp.YoutubeDL(ydl_opts_info) as ydl:
-            info = ydl.extract_info(url, download=False)
-            video_title = info.get('title')
-            video_title = sanitize_title(video_title)
-            video_duration = info.get('duration')
-            video_thumbnail_url = info.get('thumbnail')
-            logging.info(f"Video title: {video_title}")
-            logging.info(f"Original video duration: {video_duration} seconds")
-            logging.info(f"Thumbnail URL: {video_thumbnail_url}")
+        cmd = [_ytdlp_bin()] + _YTDLP_BASE_ARGS + ["-j", "--no-playlist", url]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip().splitlines()[-1])
+        info = json.loads(result.stdout)
+        video_title = sanitize_title(info.get("title", ""))
+        video_duration = info.get("duration")
+        video_thumbnail_url = info.get("thumbnail")
+        logging.info(f"Video title: {video_title}")
+        logging.info(f"Original video duration: {video_duration} seconds")
+        logging.info(f"Thumbnail URL: {video_thumbnail_url}")
     except Exception as e:
         logging.error(f"Error extracting information from video: {e}")
     return video_title, video_duration, video_thumbnail_url
@@ -233,22 +201,18 @@ def scrap_audio(url, channel):
             logging.info(f"Directory '{scraps_dir}' created.")
         audio_filename = f"{channel}_{video_title}"
         audio_filename_ext = f"{channel}_{video_title}.mp3"
-        ydl_opts_download = {
-            'format': 'bestaudio/best',
-            'outtmpl': os.path.join(scraps_dir, f'{audio_filename}.%(ext)s'),
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'quiet': True
-        }
-        ydl_opts_download.update(_yt_dlp_common_options())
-        with yt_dlp.YoutubeDL(ydl_opts_download) as ydl:
-            try:
-                ydl.download([url])
-            except Exception as e:
-                logging.error(f"Error scrapping youtube video {e}")
+        try:
+            cmd = [_ytdlp_bin()] + _YTDLP_BASE_ARGS + [
+                "-f", "bestaudio/best",
+                "-x", "--audio-format", "mp3", "--audio-quality", "192K",
+                "-o", os.path.join(scraps_dir, f"{audio_filename}.%(ext)s"),
+                url,
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if result.returncode != 0:
+                logging.error(f"Error scrapping youtube video: {result.stderr.strip().splitlines()[-1]}")
+        except Exception as e:
+            logging.error(f"Error scrapping youtube video {e}")
         thumbnail_image = download_thumbnail(video_thumbnail_url)
         full_audio_path = os.path.join(scraps_dir, audio_filename_ext)
         embed_thumbnail(os.path.join(scraps_dir, audio_filename_ext), thumbnail_image, video_title, video_title, channel)
@@ -257,7 +221,7 @@ def scrap_audio(url, channel):
         duration_tolerance = 10
         if abs(video_duration - audio_duration) <= duration_tolerance:
             logging.info("Durations match!")
-            target_dir = config["RIPS_PATH"]
+            target_dir = "/media/nefarian/tuberipper/"
             if not os.path.exists(target_dir):
                 os.makedirs(target_dir)
                 logging.info(f"Target directory '{target_dir}' created.")

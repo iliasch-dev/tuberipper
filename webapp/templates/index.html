@@ -404,19 +404,19 @@
   <div class="stats-row">
     <div class="stat-card next">
       <div class="stat-label">Next Run</div>
-      <div class="stat-value">{{ stats.next_fire }}</div>
+      <div class="stat-value" id="stat-next-fire">{{ stats.next_fire }}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Times Run</div>
-      <div class="stat-value">{{ stats.run_count }}</div>
+      <div class="stat-value" id="stat-run-count">{{ stats.run_count }}</div>
     </div>
     <div class="stat-card rips">
       <div class="stat-label">Videos Ripped</div>
-      <div class="stat-value">{{ stats.total_rips }}</div>
+      <div class="stat-value" id="stat-total-rips">{{ stats.total_rips }}</div>
     </div>
     <div class="stat-card errors">
       <div class="stat-label">Errors Logged</div>
-      <div class="stat-value">{{ stats.error_count }}</div>
+      <div class="stat-value" id="stat-errors">{{ stats.error_count }}</div>
     </div>
   </div>
 
@@ -542,7 +542,7 @@
           <th>Date</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="rips-tbody">
         {% for filename, channel, rip_date in latest_rips %}
         <tr>
           <td class="rips-filename">{{ filename }}</td>
@@ -588,6 +588,33 @@
     function clearLog() { logBox.innerHTML = ''; }
 
     function setMins(mins) { document.getElementById('interval').value = mins; }
+
+    // Live stats + rips update every 30s
+    function refreshStats() {
+      fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('stat-next-fire').textContent  = data.stats.next_fire;
+          document.getElementById('stat-run-count').textContent  = data.stats.run_count;
+          document.getElementById('stat-total-rips').textContent = data.stats.total_rips;
+          document.getElementById('stat-errors').textContent     = data.stats.error_count;
+
+          const tbody = document.getElementById('rips-tbody');
+          if (data.latest_rips.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No rips yet.</td></tr>';
+          } else {
+            tbody.innerHTML = data.latest_rips.map(r =>
+              `<tr>
+                <td class="rips-filename">${r.filename}</td>
+                <td class="rips-channel">${r.channel}</td>
+                <td class="rips-date">${r.date}</td>
+              </tr>`
+            ).join('');
+          }
+        })
+        .catch(() => {});
+    }
+    setInterval(refreshStats, 30000);
 
     function syncAndSubmit(id, changed) {
       const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;

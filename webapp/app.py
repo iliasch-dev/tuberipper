@@ -168,6 +168,49 @@ def index():
     return render_template('index.html', channels=channels, schedule=schedule, stats=stats, latest_rips=latest_rips_fmt)
 
 
+@app.route('/api/stats')
+@_require_login
+def api_stats():
+    from flask import jsonify
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT interval_minutes, enabled, run_count, last_run_at, next_run_at FROM schedule WHERE id = 1")
+    schedule = cur.fetchone()
+    cur.execute("SELECT COUNT(*) FROM rips")
+    total_rips = cur.fetchone()[0]
+    cur.execute("""
+        SELECT extracted_audio_filename, channel, creation_date
+        FROM rips ORDER BY creation_date DESC LIMIT 10
+    """)
+    latest_rips = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    next_fire = None
+    if schedule and schedule[1]:
+        nf_utc = None
+        if schedule[4]:
+            nf_utc = schedule[4].replace(tzinfo=timezone.utc)
+        elif schedule[3]:
+            nf_utc = schedule[3].replace(tzinfo=timezone.utc) + timedelta(minutes=schedule[0])
+        if nf_utc:
+            next_fire = nf_utc.astimezone(_TZ).strftime('%d-%m-%Y %H:%M:%S')
+
+    return jsonify({
+        'stats': {
+            'next_fire': next_fire or ('Disabled' if schedule and not schedule[1] else 'Pending'),
+            'run_count': schedule[2] if schedule else 0,
+            'total_rips': total_rips,
+            'error_count': _count_log_errors(),
+        },
+        'latest_rips': [
+            {'filename': filename, 'channel': channel,
+             'date': dt.replace(tzinfo=timezone.utc).astimezone(_TZ).strftime('%d-%m-%Y %H:%M:%S')}
+            for filename, channel, dt in latest_rips if dt
+        ]
+    })
+
+
 @app.route('/add', methods=['POST'])
 @_require_login
 def add_channel():

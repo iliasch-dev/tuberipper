@@ -8,7 +8,7 @@ Tuberipper monitors a list of YouTube channels and automatically downloads their
 
 1. The **scraper** runs continuously on a configurable schedule. On each tick it opens YouTube with a stealth Chrome session, checks each configured channel's Videos and/or Streams tab, and grabs the first (newest) item.
 2. If the video ID is not already in the database, it downloads the audio with `yt-dlp`, converts it to MP3 at 192 kbps via `ffmpeg`, embeds the thumbnail and metadata with `eyed3`, validates the duration, and moves the file to the output directory.
-3. The **web UI** (Flask, port 5000) lets you add or remove channels, toggle livestream / video scraping per channel, set the scraper interval, and view a live stats dashboard (next run time, total runs, videos ripped, error count) and a colour-coded live log viewer — all without touching the database or restarting containers.
+3. The **web UI** (Flask, port 5002) lets you add or remove channels, toggle livestream / video scraping per channel, set the scraper interval, and view a live stats dashboard (next run time, total runs, videos ripped, error count) and a colour-coded live log viewer — all without touching the database or restarting containers. Access is protected by a username/password login page.
 
 ## Fresh install (Docker)
 
@@ -54,7 +54,7 @@ Create `config.json` in the project root (it is gitignored):
 
 - `DB_PASS` in `config.json` must match `POSTGRES_PASSWORD` in `docker-compose.yml`
 - Set `SECRET_KEY` in `docker-compose.yml` to a random string (used for Flask session signing)
-- Set `WEBAPP_PASSWORD` in `docker-compose.yml` to protect the web UI with HTTP Basic Auth (username is ignored — only the password is checked). Leave it empty to disable auth.
+- Set `WEBAPP_USERNAME` and `WEBAPP_PASSWORD` in `docker-compose.yml` to protect the web UI with a login page. Leave both empty to disable auth.
 
 ### 3 — Export YouTube cookies
 
@@ -73,17 +73,23 @@ docker compose up -d --build
 | Service | Purpose | Port |
 |---------|---------|------|
 | `db` | PostgreSQL database | internal |
-| `webapp` | Channel management UI | 5000 |
+| `webapp` | Channel management UI | 5002 |
 | `scraper` | YouTube scraper (long-running) | — |
 
 ### 5 — Configure via the web UI
 
-Open **http://localhost:5000** and:
+Open **http://localhost:5002** and log in with the credentials set in `docker-compose.yml`, then:
 - Add channels by handle (e.g. `@MrBeast`) or channel ID, toggling **Videos** and/or **Livestreams**
 - Set the scrape **interval** using the scheduler card (presets: 30m, 1h, 2h, 6h, 12h, 24h) and enable/disable the scheduler
 - Monitor the dashboard stats (next run, total runs, videos ripped, errors) and the live log viewer
 
 The scraper runs immediately on startup, then repeats on the configured interval. Schedule changes take effect after the current run finishes — no restart needed.
+
+To rebuild and restart only the webapp container (e.g. after a code change), run:
+
+```bash
+./webapp/restart.sh
+```
 
 ### 6 — Output
 

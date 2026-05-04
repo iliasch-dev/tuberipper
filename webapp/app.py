@@ -42,6 +42,20 @@ def ensure_tables():
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS rips (
+            id SERIAL PRIMARY KEY,
+            creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            channel TEXT,
+            video_title TEXT,
+            duration INTEGER,
+            format TEXT CHECK(format IN ('VIDEO', 'AUDIO')),
+            type TEXT CHECK(type IN ('STREAM', 'VIDEO')),
+            thumbnail_image_url TEXT,
+            video_id TEXT,
+            extracted_audio_filename TEXT
+        )
+    """)
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS channels (
             id SERIAL PRIMARY KEY,
             channel TEXT NOT NULL,

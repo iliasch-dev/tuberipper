@@ -86,11 +86,12 @@ def ensure_tables():
 
 def _count_log_errors():
     count = 0
+    today = datetime.now(_TZ).strftime('%Y-%m-%d')
     try:
         if os.path.exists(_LOG_PATH):
             with open(_LOG_PATH, 'r', errors='ignore') as f:
                 for line in f:
-                    if ' ERROR' in line:
+                    if line.startswith(today) and ' ERROR' in line:
                         count += 1
     except OSError:
         pass

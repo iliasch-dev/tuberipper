@@ -198,7 +198,7 @@ class HomePage:
             self.logger.info("Live content grid loaded")
             return True
         except TimeoutException:
-            self.logger.error("Timed out waiting for live streams grid — YouTube may not have rendered the page")
+            self.logger.warning("Timed out waiting for live streams grid — YouTube may not have rendered the page")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_live_tab_navigation_failed.png")
             return False
         except Exception as e:
@@ -222,7 +222,7 @@ class HomePage:
             self.logger.info("Videos grid loaded")
             return True
         except TimeoutException:
-            self.logger.error("Timed out waiting for videos grid — YouTube may not have rendered the page")
+            self.logger.warning("Timed out waiting for videos grid — YouTube may not have rendered the page")
             self.driver.save_screenshot(self.screenshot_path + utils.timestamp() + "_homepage_videos_tab_navigation_failed.png")
             return False
         except Exception as e:

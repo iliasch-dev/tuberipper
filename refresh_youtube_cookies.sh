@@ -4,6 +4,7 @@
 # Writes to cookies/youtube_cookies.txt only after a successful YouTube check (atomic replace).
 #
 # Usage:
+#   access local machine via tightvnc , open chrome, go to youtube , login and run the script, close the browser afterwards
 #   ./refresh_youtube_cookies.sh
 #   BROWSER=firefox ./refresh_youtube_cookies.sh
 

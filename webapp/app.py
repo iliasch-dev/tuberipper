@@ -173,6 +173,7 @@ def index():
 @_require_login
 def api_stats():
     from flask import jsonify
+    from scraper.main import is_scraping
     conn = get_db()
     cur = conn.cursor()
     cur.execute("SELECT interval_minutes, enabled, run_count, last_run_at, next_run_at FROM schedule WHERE id = 1")
@@ -203,6 +204,7 @@ def api_stats():
             'run_count': schedule[2] if schedule else 0,
             'total_rips': total_rips,
             'error_count': _count_log_errors(),
+            'scraping': is_scraping(),
         },
         'latest_rips': [
             {'filename': filename, 'channel': channel,
@@ -248,6 +250,24 @@ def update_channel(channel_id):
     cur.close()
     conn.close()
     return ('', 204)
+
+
+@app.route('/scrape/<int:channel_id>', methods=['POST'])
+@_require_login
+def scrape_channel(channel_id):
+    from flask import jsonify
+    from scraper.main import trigger_channel_scrape
+    started, message = trigger_channel_scrape(channel_id)
+    return jsonify({'ok': started, 'message': message}), (202 if started else 409)
+
+
+@app.route('/kill', methods=['POST'])
+@_require_login
+def kill_scraper():
+    from flask import jsonify
+    from scraper.main import kill_all
+    result = kill_all()
+    return jsonify(result)
 
 
 @app.route('/delete/<int:channel_id>', methods=['POST'])

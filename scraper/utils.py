@@ -19,7 +19,7 @@ import unicodedata
 PUSHOVER_API_URL = "https://api.pushover.net/1/messages.json"
 
 def clean_error(e):
-    """Return a single-line error summary, stripping Selenium's verbose Stacktrace block."""
+    """Return a single-line error summary."""
     msg = str(e).split('\nStacktrace:')[0].strip()
     return f"{type(e).__name__}: {msg}" if msg else type(e).__name__
 
@@ -36,13 +36,19 @@ def _ytdlp_bin():
     venv_bin = os.path.join(os.path.dirname(os.path.abspath(__file__)), "venv", "bin", "yt-dlp")
     return venv_bin if os.path.isfile(venv_bin) else "yt-dlp"
 
+_COOKIES_PATH = "cookies/youtube_cookies.txt"
+
 _YTDLP_BASE_ARGS = [
     "--js-runtimes", "node",
-    "--extractor-args", "youtube:player_client=android,web",
+    # No player_client pin — let yt-dlp auto-select (currently visionos). A hardcoded
+    # tv/web_safari client broke on recently-ended livestreams ("The page needs to be
+    # reloaded") and plain "web" needs a PO token provider we don't have.
     "--force-ipv4",
-    "--user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    # must match the real browser/OS refresh_youtube_cookies.sh exports from (Linux Chrome) —
+    # a UA/platform mismatch against the cookie jar's origin is itself a bot-detection signal.
+    "--user-agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.7977.64 Safari/537.36",
     "--add-header", "Accept-Language:en-US,en;q=0.9",
-]
+] + (["--cookies", _COOKIES_PATH] if os.path.isfile(_COOKIES_PATH) else [])
 
 
 def staticSleep(waitTime):
@@ -93,22 +99,11 @@ def clean_screencaps():
             os.remove(file_path)
 
 
-def highlight_element(driver, element):
-    driver = element._parent
-    original_style = element.get_attribute('style')
-    driver.execute_script("arguments[0].setAttribute('style', arguments[1]);",
-                          element, "border: 2px solid red;")
+def highlight_element(locator):
+    original_style = locator.get_attribute('style') or ""
+    locator.evaluate("(el, style) => el.setAttribute('style', style)", "border: 2px solid red;")
     time.sleep(1)
-    driver.execute_script("arguments[0].setAttribute('style', arguments[1]);",
-                          element, original_style)
-
-
-def scroll_by_amount(driver, scroll_amount):
-    current_scroll_position = driver.execute_script("return window.pageYOffset")
-    logging.info(f"Current scroll position: {current_scroll_position}")
-    new_scroll_position = driver.execute_script("return window.pageYOffset + %s;" % scroll_amount)
-    logging.info(f"New Scroll position: {new_scroll_position}")
-    driver.execute_script("window.scrollTo('%s', '%s');" % (current_scroll_position, new_scroll_position))
+    locator.evaluate("(el, style) => el.setAttribute('style', style)", original_style)
 
 
 def download_thumbnail(url):
@@ -170,13 +165,29 @@ def sanitize_title(name, replace_with="_", ascii_only=False):
     name = re.sub(f'{re.escape(replace_with)}+', replace_with, name)
     return name.strip().strip(replace_with)
 
+_BOT_CHECK_MARKER = "Sign in to confirm you"
+
+
+def _run_yt_dlp(cmd, timeout, retries=2, backoff=12):
+    """YouTube's bot-check is intermittent even with valid cookies — a retry often
+    succeeds where the previous attempt was flagged, so only retry on that specific error."""
+    attempt = 0
+    while True:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        if result.returncode == 0 or attempt >= retries or _BOT_CHECK_MARKER not in result.stderr:
+            return result
+        attempt += 1
+        logging.warning(f"yt-dlp hit YouTube's bot-check, retrying ({attempt}/{retries}) in {backoff}s")
+        time.sleep(backoff)
+
+
 def grab_video_info(url):
     video_title = ""
     video_duration = ""
     video_thumbnail_url = ""
     try:
         cmd = [_ytdlp_bin()] + _YTDLP_BASE_ARGS + ["-j", "--no-playlist", url]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = _run_yt_dlp(cmd, timeout=60)
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip().splitlines()[-1])
         info = json.loads(result.stdout)
@@ -208,7 +219,7 @@ def scrap_audio(url, channel):
                 "-o", os.path.join(scraps_dir, f"{audio_filename}.%(ext)s"),
                 url,
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            result = _run_yt_dlp(cmd, timeout=600)
             if result.returncode != 0:
                 logging.error(f"Error scrapping youtube video: {result.stderr.strip().splitlines()[-1]}")
         except Exception as e:

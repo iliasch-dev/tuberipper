@@ -2,7 +2,7 @@
   <img width="128" height="128" alt="image" src="https://github.com/user-attachments/assets/919c7d97-831c-4b2f-8163-8cef67cd18b3" />
 </div>
 
-Tuberipper monitors a list of YouTube channels and automatically downloads their latest videos or livestreams as MP3 files. It uses Selenium to navigate YouTube, `yt-dlp` to download and extract audio, and PostgreSQL to track what has already been scraped so nothing is downloaded twice. A lightweight web UI lets you manage channels, toggle scraping preferences, and configure the run schedule. Notifications are sent via Pushover when a new rip completes. You may used it along with a web app player like Audiobookshelf.
+Tuberipper monitors a list of YouTube channels and automatically downloads their latest videos or livestreams as MP3 files. It uses Playwright to navigate YouTube, `yt-dlp` to download and extract audio, and PostgreSQL to track what has already been scraped so nothing is downloaded twice. A lightweight web UI lets you manage channels, toggle scraping preferences, and configure the run schedule. Notifications are sent via Pushover when a new rip completes. You may used it along with a web app player like Audiobookshelf.
 
 ## How it works
 
@@ -35,7 +35,6 @@ Create `config.json` in the project root (it is gitignored):
   "DB_USER": "postgres",
   "DB_PASS": "your-password",
   "DB_HOST": "db",
-  "CHROMEDRIVER_PATH": "",
   "WEBDRIVER_TIMEOUT": "30",
   "COOKIES_PATH": "cookies/",
   "SCREENCAP_PATH": "screencap/",
@@ -48,7 +47,7 @@ Create `config.json` in the project root (it is gitignored):
 
 > Pushover credentials are optional — if omitted, notifications are silently skipped.
 
-> `DB_HOST` must be `"db"` (the Docker service name) and `CHROMEDRIVER_PATH` must be `""` so the system-installed driver is used.
+> `DB_HOST` must be `"db"` (the Docker service name).
 
 ### 2 — Set passwords
 
@@ -110,7 +109,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-System dependencies required: `chromium`, `chromium-driver`, `ffmpeg`, `deno`.
+System dependencies required: `ffmpeg`, `deno`. After `pip install`, run `python -m playwright install --with-deps chromium` to download Playwright's managed Chromium browser.
 
 ```bash
 python -m scraper.main

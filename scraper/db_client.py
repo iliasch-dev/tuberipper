@@ -108,6 +108,21 @@ def get_all_channels(conn):
         return None
 
 
+def get_channel_by_id(conn, channel_id):
+    try:
+        cursor = conn.cursor()
+        query = "SELECT channel, scrap_streams, scrap_videos FROM channels WHERE id = %s"
+        cursor.execute(query, (channel_id,))
+        record = cursor.fetchone()
+        cursor.close()
+        if record is None:
+            return None
+        return {"channel": record[0], "scrap_streams": record[1], "scrap_videos": record[2]}
+    except psycopg2.Error as e:
+        logging.error(f"Error fetching channel {channel_id}: {e}")
+        return None
+
+
 def check_video_id_exists(conn, video_id, format):
     try:
         cursor = conn.cursor()

@@ -5,7 +5,6 @@
     "DB_PASS": "your_db_password",
     "DB_HOST": "db",
 
-    "CHROMEDRIVER_PATH": "",
     "WEBDRIVER_TIMEOUT": "30",
     "SCREENCAP_PATH": "screencap/",
     "RIPS_PATH": "/tmp/tuberipper/",

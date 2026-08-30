@@ -9,8 +9,8 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #0d0d0d;
-      color: #d0d0d0;
+      background: #131722;
+      color: #ccd3e0;
       font-family: 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
       padding: 1.5rem 1rem;
@@ -36,8 +36,8 @@
     .btn-logout {
       margin-left: auto;
       background: transparent;
-      border: 1px solid #2a2a2a;
-      color: #555;
+      border: 1px solid #2b3242;
+      color: #6b7690;
       padding: 0.3rem 0.7rem;
       border-radius: 5px;
       font-size: 0.78rem;
@@ -46,7 +46,96 @@
       transition: color 0.15s, border-color 0.15s;
     }
 
-    .btn-logout:hover { color: #999; border-color: #444; }
+    .btn-logout:hover { color: #98a2b8; border-color: #454e60; }
+
+    /* Pac-Man scraper-activity indicator */
+    .pacman-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid #2b3242;
+    }
+
+    .pacman-body {
+      position: relative;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .pacman-top, .pacman-bottom {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-radius: 16px;
+      border: 8px solid #6b7690;
+      border-right-color: transparent;
+      transform-origin: 8px 8px;
+      transition: border-color 0.2s;
+    }
+
+    .pacman-bottom { transform: scaleY(-1); }
+
+    .pacman-indicator.running .pacman-top,
+    .pacman-indicator.running .pacman-bottom { border-color: #ffcc00; border-right-color: transparent; }
+
+    .pacman-indicator.running .pacman-top { animation: pacman-chomp-top 0.45s infinite linear; }
+    .pacman-indicator.running .pacman-bottom { animation: pacman-chomp-bottom 0.45s infinite linear; }
+
+    @keyframes pacman-chomp-top {
+      0%, 100% { transform: rotate(0deg); }
+      50% { transform: rotate(-38deg); }
+    }
+    @keyframes pacman-chomp-bottom {
+      0%, 100% { transform: scaleY(-1) rotate(0deg); }
+      50% { transform: scaleY(-1) rotate(-38deg); }
+    }
+
+    .pacman-dots { display: flex; gap: 3px; }
+
+    .pacman-dots span {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #454e60;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .pacman-indicator.running .pacman-dots span {
+      background: #ffcc00;
+      animation: pacman-dot-eat 0.9s infinite;
+    }
+    .pacman-indicator.running .pacman-dots span:nth-child(1) { animation-delay: 0.4s; }
+    .pacman-indicator.running .pacman-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .pacman-indicator.running .pacman-dots span:nth-child(3) { animation-delay: 0s; }
+
+    @keyframes pacman-dot-eat {
+      0%, 20% { opacity: 1; transform: scale(1); }
+      40%, 100% { opacity: 0; transform: scale(0.3); }
+    }
+
+    .pacman-label { font-size: 0.72rem; color: #838da3; white-space: nowrap; }
+    .pacman-indicator.running .pacman-label { color: #ffcc00; }
+
+    .btn-kill {
+      background: transparent;
+      border: 1px solid #4a1a1a;
+      color: #cc3333;
+      padding: 0.3rem 0.7rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+    }
+
+    .btn-kill:hover:not(:disabled) { background: #3a1010; border-color: #ff3333; color: #ff3333; }
+    .btn-kill:disabled { opacity: 0.35; cursor: default; }
 
     /* Stats */
     .stats-row {
@@ -61,8 +150,8 @@
     }
 
     .stat-card {
-      background: #141414;
-      border: 1px solid #222;
+      background: #1a202c;
+      border: 1px solid #2b3242;
       border-radius: 8px;
       padding: 0.75rem 1rem;
     }
@@ -71,14 +160,14 @@
       font-size: 0.68rem;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #555;
+      color: #6b7690;
       margin-bottom: 0.2rem;
     }
 
     .stat-value {
       font-size: 1.35rem;
       font-weight: 700;
-      color: #d0d0d0;
+      color: #ccd3e0;
       line-height: 1.2;
     }
 
@@ -111,8 +200,8 @@
     }
 
     .card {
-      background: #141414;
-      border: 1px solid #222;
+      background: #1a202c;
+      border: 1px solid #2b3242;
       border-radius: 8px;
       padding: 1.25rem;
     }
@@ -121,7 +210,7 @@
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #555;
+      color: #6b7690;
       margin-bottom: 1rem;
     }
 
@@ -133,19 +222,19 @@
       font-size: 0.7rem;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: #555;
+      color: #6b7690;
       padding: 0 0.6rem 0.6rem;
     }
 
     td {
       padding: 0.55rem 0.6rem;
-      border-top: 1px solid #1e1e1e;
+      border-top: 1px solid #242b38;
       vertical-align: middle;
     }
 
-    tr:hover td { background: #181818; }
+    tr:hover td { background: #1e2532; }
 
-    .channel-name { font-size: 0.9rem; color: #ccc; }
+    .channel-name { font-size: 0.9rem; color: #ccd3e0; }
 
     /* Toggle */
     .toggle {
@@ -160,7 +249,7 @@
     .slider {
       position: absolute;
       inset: 0;
-      background: #2a2a2a;
+      background: #2b3242;
       border-radius: 20px;
       cursor: pointer;
       transition: background 0.2s;
@@ -173,7 +262,7 @@
       height: 14px;
       left: 3px;
       top: 3px;
-      background: #666;
+      background: #5c6780;
       border-radius: 50%;
       transition: transform 0.2s, background 0.2s;
     }
@@ -195,6 +284,21 @@
 
     .btn-delete:hover { background: #2a1010; border-color: #cc3333; color: #cc3333; }
 
+    .btn-scrape {
+      background: transparent;
+      border: 1px solid #1a2a1a;
+      color: #44cc44;
+      padding: 0.25rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      margin-right: 0.4rem;
+    }
+
+    .btn-scrape:hover { background: #102a10; border-color: #44cc44; }
+    .btn-scrape:disabled { opacity: 0.6; cursor: default; }
+
     /* Add form */
     .add-form {
       display: flex;
@@ -207,9 +311,9 @@
     .add-form input[type="text"] {
       flex: 1;
       min-width: 160px;
-      background: #0d0d0d;
-      border: 1px solid #2a2a2a;
-      color: #d0d0d0;
+      background: #131722;
+      border: 1px solid #2b3242;
+      color: #ccd3e0;
       padding: 0.45rem 0.75rem;
       border-radius: 5px;
       font-size: 0.88rem;
@@ -218,7 +322,7 @@
     }
 
     .add-form input[type="text"]:focus { border-color: #ff4444; }
-    .add-form input[type="text"]::placeholder { color: #444; }
+    .add-form input[type="text"]::placeholder { color: #454e60; }
 
     .add-form .checks {
       display: flex;
@@ -231,7 +335,7 @@
       align-items: center;
       gap: 0.35rem;
       font-size: 0.82rem;
-      color: #888;
+      color: #838da3;
       cursor: pointer;
     }
 
@@ -258,7 +362,7 @@
 
     .empty-state {
       text-align: center;
-      color: #444;
+      color: #454e60;
       font-size: 0.88rem;
       padding: 1.5rem 0;
     }
@@ -275,14 +379,14 @@
       align-items: center;
       gap: 0.5rem;
       font-size: 0.85rem;
-      color: #999;
+      color: #98a2b8;
     }
 
     .schedule-form input[type="number"] {
       width: 70px;
-      background: #0d0d0d;
-      border: 1px solid #2a2a2a;
-      color: #d0d0d0;
+      background: #131722;
+      border: 1px solid #2b3242;
+      color: #ccd3e0;
       padding: 0.45rem 0.6rem;
       border-radius: 5px;
       font-size: 0.88rem;
@@ -299,9 +403,9 @@
     }
 
     .preset-btn {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      color: #888;
+      background: #202735;
+      border: 1px solid #2b3242;
+      color: #838da3;
       padding: 0.25rem 0.55rem;
       border-radius: 4px;
       font-size: 0.75rem;
@@ -309,7 +413,7 @@
       transition: background 0.15s, color 0.15s;
     }
 
-    .preset-btn:hover { background: #222; color: #ccc; }
+    .preset-btn:hover { background: #2b3242; color: #ccd3e0; }
 
     .status-dot {
       display: inline-block;
@@ -320,7 +424,7 @@
     }
 
     .status-dot.on  { background: #44cc44; box-shadow: 0 0 5px #44cc44; }
-    .status-dot.off { background: #444; }
+    .status-dot.off { background: #454e60; }
 
     .schedule-footer {
       display: flex;
@@ -328,12 +432,12 @@
       justify-content: space-between;
     }
 
-    .toggle-label { font-size: 0.82rem; color: #888; }
+    .toggle-label { font-size: 0.82rem; color: #838da3; }
 
     /* Log */
     .log-box {
-      background: #0a0a0a;
-      border: 1px solid #1e1e1e;
+      background: #0f131b;
+      border: 1px solid #242b38;
       border-radius: 6px;
       height: 300px;
       overflow-y: auto;
@@ -347,7 +451,7 @@
     .log-line.info    { color: #44cc44; }
     .log-line.error   { color: #ff4444; }
     .log-line.warning { color: #ff9900; }
-    .log-line.default { color: #555; }
+    .log-line.default { color: #6b7690; }
 
     .log-header {
       display: flex;
@@ -360,8 +464,8 @@
 
     .btn-clear {
       background: transparent;
-      border: 1px solid #222;
-      color: #555;
+      border: 1px solid #2b3242;
+      color: #6b7690;
       padding: 0.2rem 0.55rem;
       border-radius: 4px;
       font-size: 0.75rem;
@@ -369,12 +473,12 @@
       transition: color 0.15s, border-color 0.15s;
     }
 
-    .btn-clear:hover { color: #999; border-color: #444; }
+    .btn-clear:hover { color: #98a2b8; border-color: #454e60; }
 
     /* Latest rips */
     .rips-filename {
       font-size: 0.85rem;
-      color: #ccc;
+      color: #ccd3e0;
       word-break: break-all;
     }
 
@@ -386,7 +490,7 @@
 
     .rips-date {
       font-size: 0.78rem;
-      color: #555;
+      color: #6b7690;
       white-space: nowrap;
     }
   </style>
@@ -397,6 +501,15 @@
     <img src="{{ url_for('static', filename='logo.png') }}"
          width="36" height="36" alt="Tuberipper logo" style="border-radius:5px; flex-shrink:0;">
     <h1>Tube<span>ripper</span></h1>
+    <div class="pacman-indicator idle" id="pacmanIndicator" title="Scraper idle">
+      <div class="pacman-body">
+        <div class="pacman-top"></div>
+        <div class="pacman-bottom"></div>
+      </div>
+      <div class="pacman-dots"><span></span><span></span><span></span></div>
+      <span class="pacman-label">Idle</span>
+    </div>
+    <button type="button" id="killBtn" class="btn-kill" onclick="killScraper()" disabled title="Nothing is running">Kill</button>
     <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
   </header>
 
@@ -480,8 +593,9 @@
             </td>
 
             <td>
+              <button type="button" class="btn-scrape" onclick="scrapeNow({{ id }}, this)">Scrape</button>
               <form method="POST" action="/delete/{{ id }}"
-                    onsubmit="return confirm('Remove {{ channel }}?')">
+                    onsubmit="return confirm('Remove {{ channel }}?')" style="display:inline">
                 <button class="btn-delete" type="submit">Remove</button>
               </form>
             </td>
@@ -589,32 +703,115 @@
 
     function setMins(mins) { document.getElementById('interval').value = mins; }
 
+    // Applies a /api/stats payload to the DOM; returns whether a scrape is running.
+    function applyStats(data) {
+      document.getElementById('stat-next-fire').textContent  = data.stats.next_fire;
+      document.getElementById('stat-run-count').textContent  = data.stats.run_count;
+      document.getElementById('stat-total-rips').textContent = data.stats.total_rips;
+      document.getElementById('stat-errors').textContent     = data.stats.error_count;
+
+      const scraping = !!data.stats.scraping;
+      document.querySelectorAll('.btn-scrape').forEach(btn => {
+        btn.disabled = scraping;
+        if (!scraping && btn.dataset.busy) {
+          delete btn.dataset.busy;
+          btn.textContent = 'Scrape';
+        }
+      });
+
+      const pacman = document.getElementById('pacmanIndicator');
+      pacman.classList.toggle('running', scraping);
+      pacman.classList.toggle('idle', !scraping);
+      pacman.querySelector('.pacman-label').textContent = scraping ? 'Scraping…' : 'Idle';
+      pacman.title = scraping ? 'Scraper is running' : 'Scraper idle';
+
+      const killBtn = document.getElementById('killBtn');
+      if (!killBtn.dataset.busy) {
+        killBtn.disabled = !scraping;
+        killBtn.title = scraping ? 'Force-stop the running scrape' : 'Nothing is running';
+      }
+
+      const tbody = document.getElementById('rips-tbody');
+      if (data.latest_rips.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No rips yet.</td></tr>';
+      } else {
+        tbody.innerHTML = data.latest_rips.map(r =>
+          `<tr>
+            <td class="rips-filename">${r.filename}</td>
+            <td class="rips-channel">${r.channel}</td>
+            <td class="rips-date">${r.date}</td>
+          </tr>`
+        ).join('');
+      }
+      return scraping;
+    }
+
     // Live stats + rips update every 30s
     function refreshStats() {
       fetch('/api/stats')
         .then(r => r.json())
-        .then(data => {
-          document.getElementById('stat-next-fire').textContent  = data.stats.next_fire;
-          document.getElementById('stat-run-count').textContent  = data.stats.run_count;
-          document.getElementById('stat-total-rips').textContent = data.stats.total_rips;
-          document.getElementById('stat-errors').textContent     = data.stats.error_count;
-
-          const tbody = document.getElementById('rips-tbody');
-          if (data.latest_rips.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No rips yet.</td></tr>';
-          } else {
-            tbody.innerHTML = data.latest_rips.map(r =>
-              `<tr>
-                <td class="rips-filename">${r.filename}</td>
-                <td class="rips-channel">${r.channel}</td>
-                <td class="rips-date">${r.date}</td>
-              </tr>`
-            ).join('');
-          }
-        })
+        .then(applyStats)
         .catch(() => {});
     }
+    refreshStats();
     setInterval(refreshStats, 30000);
+
+    function killScraper() {
+      if (!confirm('Force-kill the running scrape and all Playwright/Chromium processes?')) return;
+      const btn = document.getElementById('killBtn');
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.textContent = 'Killing…';
+      fetch('/kill', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => { btn.textContent = data.message || 'Killed'; })
+        .catch(() => { btn.textContent = 'Error'; })
+        .finally(() => pollUntilIdle(btn));
+    }
+
+    // Kill only terminates the browser/yt-dlp processes — the scraper thread notices
+    // and releases its lock on its own time (it can be mid-sleep for up to ~30s), so
+    // poll quickly afterward instead of waiting for the next 30s refreshStats() tick.
+    function pollUntilIdle(btn, attemptsLeft = 20) {
+      fetch('/api/stats')
+        .then(r => r.json())
+        .then(data => {
+          const scraping = applyStats(data);
+          if (scraping && attemptsLeft > 0) {
+            setTimeout(() => pollUntilIdle(btn, attemptsLeft - 1), 2000);
+          } else {
+            delete btn.dataset.busy;
+            btn.textContent = 'Kill';
+            btn.disabled = !scraping;
+          }
+        })
+        .catch(() => {
+          delete btn.dataset.busy;
+          btn.textContent = 'Kill';
+        });
+    }
+
+    function scrapeNow(id, btn) {
+      // Disable every channel's button immediately (not just this one) so a scrape
+      // can't be double-triggered during the round trip to the server.
+      const allBtns = document.querySelectorAll('.btn-scrape');
+      allBtns.forEach(b => { b.disabled = true; });
+      btn.dataset.busy = '1';
+      btn.textContent = 'Scraping…';
+      fetch('/scrape/' + id, { method: 'POST' })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          btn.textContent = ok ? 'Started' : (data.message || 'Busy');
+          // all buttons stay disabled — refreshStats() re-enables them once the lock frees up
+          refreshStats();
+        })
+        .catch(() => {
+          btn.textContent = 'Error';
+          delete btn.dataset.busy;
+          allBtns.forEach(b => { b.disabled = false; });
+          setTimeout(() => { btn.textContent = 'Scrape'; }, 3000);
+        });
+    }
 
     function syncAndSubmit(id, changed) {
       const streamsChecked = document.querySelector('#form-streams-' + id + ' input[name="scrap_streams"]').checked;

@@ -98,6 +98,14 @@ def _count_log_errors():
     return count
 
 
+def _staging_size():
+    from scraper.utils import staging_size_bytes, human_size
+    try:
+        return human_size(staging_size_bytes())
+    except Exception:
+        return '?'
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if not _AUTH_ENABLED:
@@ -159,6 +167,7 @@ def index():
         'run_count': schedule[2] if schedule else 0,
         'total_rips': total_rips,
         'error_count': _count_log_errors(),
+        'staging_size': _staging_size(),
     }
 
     latest_rips_fmt = [
@@ -204,6 +213,7 @@ def api_stats():
             'run_count': schedule[2] if schedule else 0,
             'total_rips': total_rips,
             'error_count': _count_log_errors(),
+            'staging_size': _staging_size(),
             'scraping': is_scraping(),
         },
         'latest_rips': [
@@ -259,6 +269,33 @@ def scrape_channel(channel_id):
     from scraper.main import trigger_channel_scrape
     started, message = trigger_channel_scrape(channel_id)
     return jsonify({'ok': started, 'message': message}), (202 if started else 409)
+
+
+@app.route('/scrape/url', methods=['POST'])
+@_require_login
+def scrape_url():
+    from flask import jsonify
+    from scraper.main import trigger_url_scrape
+    url = (request.form.get('url') or '').strip()
+    if not url:
+        return jsonify({'ok': False, 'message': 'Enter a YouTube URL'}), 400
+    started, message = trigger_url_scrape(url)
+    if started:
+        status = 202
+    elif 'already running' in message:
+        status = 409
+    else:
+        status = 400
+    return jsonify({'ok': started, 'message': message}), status
+
+
+@app.route('/staging/clean', methods=['POST'])
+@_require_login
+def clean_staging():
+    from flask import jsonify
+    from scraper.main import cleanup_staging
+    ok, message = cleanup_staging()
+    return jsonify({'ok': ok, 'message': message, 'staging_size': _staging_size()}), (200 if ok else 409)
 
 
 @app.route('/kill', methods=['POST'])

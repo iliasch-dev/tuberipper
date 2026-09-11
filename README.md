@@ -8,7 +8,8 @@ Tuberipper monitors a list of YouTube channels and automatically downloads their
 
 1. The **scraper** runs continuously on a configurable schedule. On each tick it opens YouTube with a stealth Chrome session, checks each configured channel's Videos and/or Streams tab, and grabs the first (newest) item.
 2. If the video ID is not already in the database, it downloads the audio with `yt-dlp`, converts it to MP3 at 192 kbps via `ffmpeg`, embeds the thumbnail and metadata with `eyed3`, validates the duration, and moves the file to the output directory.
-3. The **web UI** (Flask, port 5002) lets you add or remove channels, toggle livestream / video scraping per channel, set the scraper interval, and view a live stats dashboard (next run time, total runs, videos ripped, error count) and a colour-coded live log viewer — all without touching the database or restarting containers. Access is protected by a username/password login page.
+3. The **web UI** (Flask, port 5002) lets you add or remove channels, toggle livestream / video scraping per channel, set the scraper interval, rip any single YouTube video on demand by pasting its URL (no channel needed — the uploader handle is taken from the video; already-ripped videos are re-ripped and their existing record refreshed), and view a live stats dashboard (next run time, total runs, videos ripped, error count, staging-directory size) and a colour-coded live log viewer — all without touching the database or restarting containers. Access is protected by a username/password login page.
+4. The **staging directory** (`RIPS_PATH`, where `yt-dlp` writes in-progress downloads and where duration-mismatch rejects end up) is wiped automatically every day at 04:30 — skipped and retried an hour later if a rip is in progress — and can also be cleared on demand from the Staging stat card.
 
 ## Fresh install (Docker)
 

@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from .page_objects.actions_youtube import ActionYoutube
 from . import db_client
 from . import utils
+from .enums import Format
 
 import importlib.metadata
 import random
@@ -12,7 +13,7 @@ import logging
 import os
 import threading
 import subprocess
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 log_path = os.environ.get('LOG_PATH', 'tuberipper.log')
@@ -128,6 +129,76 @@ def trigger_channel_scrape(channel_id):
     return True, "Scrape started"
 
 
+def trigger_url_scrape(url):
+    """Rip a single YouTube URL on demand (no Playwright — straight to yt-dlp) in a
+    background thread. Returns (started: bool, message: str) immediately."""
+    video_id = utils.extract_video_id(url)
+    if not video_id:
+        return False, "Not a recognisable YouTube video URL"
+    watch_url = config["YOUTUBE_URL"] + "watch?v=" + video_id
+
+    # Manual rips deliberately bypass the already-ripped check (so an accidentally
+    # deleted file can be re-ripped); the existing row is refreshed instead of duplicated.
+    db_conn = db_client.init_database()
+    try:
+        already_ripped = db_client.check_video_id_exists(db_conn, video_id, Format.AUDIO.value)
+    finally:
+        db_conn.close()
+
+    if not _scrape_lock.acquire(blocking=False):
+        return False, "A scrape is already running — try again shortly"
+
+    def worker():
+        try:
+            logger.info(f"==========>Manual URL {'re-rip' if already_ripped else 'rip'} requested: {watch_url}<==========")
+            result = utils.scrap_audio(watch_url)
+            if result is None or any(value in [None, "", [], {}, set()] for value in result.values()):
+                logger.error(f"Manual URL rip failed for {watch_url}")
+                return
+            db_conn = db_client.init_database()
+            try:
+                logger.info("Saving rip data in DB")
+                save = db_client.update_rip_record if already_ripped else db_client.insert_rip_record
+                save(
+                    db_conn, result['channel'], result['video_title'],
+                    result['video_duration'], Format.AUDIO.value, result['media_type'],
+                    result['video_thumbnail_url'], video_id, result['audio_filename']
+                )
+            finally:
+                db_conn.close()
+            logger.info(f"Sending pushover: title={result['video_title']}, image={result['video_thumbnail_url']}")
+            utils.send_pushover_notification(
+                message=f"{result['channel']} - {result['video_title']}",
+                image_url=result['video_thumbnail_url']
+            )
+            logger.info(f"Manual URL rip complete for {watch_url}")
+        except Exception as e:
+            logger.error(f"Unhandled error in manual URL rip: {utils.clean_error(e)}")
+        finally:
+            _scrape_lock.release()
+
+    threading.Thread(target=worker, daemon=True).start()
+    return True, f"{'Re-rip' if already_ripped else 'Rip'} started for {video_id}"
+
+
+def cleanup_staging():
+    """Wipe RIPS_PATH (leftover .part downloads, duration-mismatch rejects, …).
+    Holds _scrape_lock so it can never delete a file a running rip is still writing.
+    Returns (ok: bool, message: str)."""
+    if not _scrape_lock.acquire(blocking=False):
+        return False, "A scrape is running — staging cleanup skipped"
+    try:
+        before = utils.staging_size_bytes()
+        logger.info(f"Cleaning staging directory {config['RIPS_PATH']} ({utils.human_size(before)})")
+        utils.clear_directory_contents(config["RIPS_PATH"])
+        return True, f"Freed {utils.human_size(before)} from staging"
+    except Exception as e:
+        logger.error(f"Unhandled error in staging cleanup: {utils.clean_error(e)}")
+        return False, "Staging cleanup failed — see log"
+    finally:
+        _scrape_lock.release()
+
+
 def start_scheduler():
     logger.info("Tuberipper scheduler starting")
 
@@ -168,6 +239,19 @@ def start_scheduler():
         next_run_time=datetime.now()
     )
 
+    def staging_job():
+        ok, message = cleanup_staging()
+        if ok:
+            logger.info(f"Daily staging cleanup: {message}")
+        else:
+            # A rip was in progress — don't wait a whole day, try again in an hour.
+            retry_at = datetime.now() + timedelta(hours=1)
+            scheduler.modify_job('staging_cleanup', next_run_time=retry_at)
+            logger.warning(f"Daily staging cleanup: {message}; retrying at {retry_at:%H:%M}")
+
+    scheduler.add_job(staging_job, trigger='cron', hour=4, minute=30, id='staging_cleanup')
+
     logger.info(f"Scheduler started — interval: {schedule['interval_minutes']} minutes, enabled: {schedule['enabled']}")
+    logger.info("Daily staging cleanup scheduled for 04:30")
     scheduler.start()
     return scheduler

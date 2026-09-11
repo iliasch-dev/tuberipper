@@ -140,7 +140,7 @@
     /* Stats */
     .stats-row {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 0.75rem;
       margin-bottom: 1.25rem;
     }
@@ -172,6 +172,48 @@
     }
 
     .stat-card.next .stat-value { font-size: 0.95rem; color: #aaa; }
+    .stat-card.staging .stat-value { color: #ff9900; }
+    .stat-card.staging .stat-label { display: flex; align-items: center; justify-content: space-between; }
+
+    .btn-clean {
+      background: transparent;
+      border: 1px solid #2b3242;
+      color: #6b7690;
+      padding: 0.05rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      letter-spacing: 0;
+      text-transform: none;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-clean:hover:not(:disabled) { color: #ff9900; border-color: #ff9900; }
+    .btn-clean:disabled { opacity: 0.4; cursor: default; }
+
+    /* Rip by URL */
+    .url-form { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+
+    .url-form input[type="url"] {
+      flex: 1;
+      min-width: 220px;
+      background: #131722;
+      border: 1px solid #2b3242;
+      color: #ccd3e0;
+      padding: 0.45rem 0.75rem;
+      border-radius: 5px;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .url-form input[type="url"]:focus { border-color: #ff4444; }
+    .url-form input[type="url"]::placeholder { color: #454e60; }
+    .url-form .btn-add:disabled { opacity: 0.5; cursor: default; }
+
+    .url-status { font-size: 0.8rem; color: #838da3; min-height: 1.1em; margin-top: 0.6rem; }
+    .url-status.ok  { color: #44cc44; }
+    .url-status.err { color: #ff4444; }
     .stat-card.errors .stat-value { color: #ff4444; }
     .stat-card.rips .stat-value   { color: #44cc44; }
 
@@ -531,6 +573,13 @@
       <div class="stat-label">Errors Logged</div>
       <div class="stat-value" id="stat-errors">{{ stats.error_count }}</div>
     </div>
+    <div class="stat-card staging" title="Contents of the .staging directory — wiped daily at 04:30">
+      <div class="stat-label">
+        <span>Staging</span>
+        <button type="button" class="btn-clean" id="cleanBtn" onclick="cleanStaging()">Clean</button>
+      </div>
+      <div class="stat-value" id="stat-staging">{{ stats.staging_size }}</div>
+    </div>
   </div>
 
   {% for msg in get_flashed_messages() %}
@@ -644,6 +693,16 @@
 
   </div>
 
+  <!-- Rip by URL -->
+  <div class="card" style="margin-bottom: 0.75rem;">
+    <h2>Rip by URL</h2>
+    <form class="url-form" id="urlForm" onsubmit="return ripUrl(event)">
+      <input type="url" name="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=…" required>
+      <button class="btn-add" type="submit" id="ripUrlBtn">Rip</button>
+    </form>
+    <div class="url-status" id="urlStatus"></div>
+  </div>
+
   <!-- Latest Rips -->
   <div class="card" style="margin-bottom: 0.75rem;">
     <h2>Latest Rips</h2>
@@ -709,8 +768,17 @@
       document.getElementById('stat-run-count').textContent  = data.stats.run_count;
       document.getElementById('stat-total-rips').textContent = data.stats.total_rips;
       document.getElementById('stat-errors').textContent     = data.stats.error_count;
+      document.getElementById('stat-staging').textContent    = data.stats.staging_size;
 
       const scraping = !!data.stats.scraping;
+      const ripUrlBtn = document.getElementById('ripUrlBtn');
+      ripUrlBtn.disabled = scraping;
+      if (!scraping && ripUrlBtn.dataset.busy) {
+        delete ripUrlBtn.dataset.busy;
+        ripUrlBtn.textContent = 'Rip';
+      }
+      const cleanBtn = document.getElementById('cleanBtn');
+      if (!cleanBtn.dataset.busy) cleanBtn.disabled = scraping;
       document.querySelectorAll('.btn-scrape').forEach(btn => {
         btn.disabled = scraping;
         if (!scraping && btn.dataset.busy) {
@@ -811,6 +879,64 @@
           allBtns.forEach(b => { b.disabled = false; });
           setTimeout(() => { btn.textContent = 'Scrape'; }, 3000);
         });
+    }
+
+    function ripUrl(event) {
+      event.preventDefault();
+      const btn = document.getElementById('ripUrlBtn');
+      const input = document.getElementById('urlInput');
+      const status = document.getElementById('urlStatus');
+      btn.disabled = true;
+      btn.dataset.busy = '1';
+      btn.textContent = 'Ripping…';
+      status.className = 'url-status';
+      status.textContent = '';
+      fetch('/scrape/url', { method: 'POST', body: new URLSearchParams({ url: input.value }) })
+        .then(r => r.json().then(data => ({ ok: r.ok, data })))
+        .then(({ ok, data }) => {
+          status.className = 'url-status ' + (ok ? 'ok' : 'err');
+          status.textContent = data.message || (ok ? 'Started' : 'Failed');
+          if (ok) {
+            input.value = '';
+            // button stays disabled — refreshStats() re-enables it once the lock frees up
+            refreshStats();
+          } else {
+            delete btn.dataset.busy;
+            btn.textContent = 'Rip';
+            btn.disabled = false;
+          }
+        })
+        .catch(() => {
+          status.className = 'url-status err';
+          status.textContent = 'Request failed';
+          delete btn.dataset.busy;
+          btn.textContent = 'Rip';
+          btn.disabled = false;
+        });
+      return false;
+    }
+
+    function cleanStaging() {
+      const size = document.getElementById('stat-staging').textContent;
+      if (!confirm('Delete everything in the .staging directory (' + size + ')?')) return;
+      const btn = document.getElementById('cleanBtn');
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.textContent = 'Cleaning…';
+      fetch('/staging/clean', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('stat-staging').textContent = data.staging_size;
+          btn.textContent = data.ok ? 'Done' : 'Busy';
+          btn.title = data.message || '';
+        })
+        .catch(() => { btn.textContent = 'Error'; })
+        .finally(() => setTimeout(() => {
+          delete btn.dataset.busy;
+          btn.textContent = 'Clean';
+          btn.title = '';
+          refreshStats();
+        }, 3000));
     }
 
     function syncAndSubmit(id, changed) {

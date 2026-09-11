@@ -162,6 +162,26 @@ def insert_rip_record(conn, channel, video_title, duration, media_format, media_
         logging.error(f"❌ Error inserting rip record: {e}")
 
 
+def update_rip_record(conn, channel, video_title, duration, media_format, media_type,
+                      thumbnail_image_url, video_id, extracted_audio_filename):
+    """Refresh an existing rip row (matched on video_id + format) after a manual re-rip,
+    bumping creation_date so it shows up at the top of Latest Rips again."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE rips
+                SET creation_date = CURRENT_TIMESTAMP, channel = %s, video_title = %s, duration = %s,
+                    type = %s, thumbnail_image_url = %s, extracted_audio_filename = %s
+                WHERE video_id = %s AND format = %s
+            """, (channel, video_title, duration, media_type, thumbnail_image_url,
+                  extracted_audio_filename, video_id, media_format))
+            conn.commit()
+            logging.info(f"✅ Rip record for video: {video_title} updated successfully.")
+    except Exception as e:
+        conn.rollback()
+        logging.error(f"❌ Error updating rip record: {e}")
+
+
 def _seed_schedule(conn):
     try:
         with conn.cursor() as cur:

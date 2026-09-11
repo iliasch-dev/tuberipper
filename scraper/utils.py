@@ -85,6 +85,25 @@ def clear_directory_contents(directory_path):
     except Exception as e:
         logging.error(f"Error clearing directory contents: {e}")
 
+def staging_size_bytes():
+    """Total size of everything under RIPS_PATH (the .staging dir), 0 if it doesn't exist."""
+    total = 0
+    for root, _dirs, files in os.walk(config["RIPS_PATH"]):
+        for name in files:
+            try:
+                total += os.path.getsize(os.path.join(root, name))
+            except OSError:
+                pass
+    return total
+
+
+def human_size(num_bytes):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if num_bytes < 1024 or unit == "TB":
+            return f"{num_bytes:.0f} {unit}" if unit == "B" else f"{num_bytes:.1f} {unit}"
+        num_bytes /= 1024
+
+
 def delete_temp():
     if os.path.exists("temp/"):
         shutil.rmtree("temp/")
@@ -181,30 +200,54 @@ def _run_yt_dlp(cmd, timeout, retries=2, backoff=12):
         time.sleep(backoff)
 
 
+_VIDEO_ID_RE = re.compile(
+    r'(?:youtube\.com/(?:watch\?(?:.*&)?v=|live/|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})'
+)
+
+
+def extract_video_id(url):
+    """Pull the 11-char video ID out of any common YouTube URL shape, or None."""
+    match = _VIDEO_ID_RE.search(url.strip())
+    return match.group(1) if match else None
+
+
 def grab_video_info(url):
-    video_title = ""
-    video_duration = ""
-    video_thumbnail_url = ""
+    """Returns a dict with title/duration/thumbnail_url plus the uploader handle
+    (e.g. "@EnternityGr"), video id and whether it was a livestream — or None on failure."""
     try:
         cmd = [_ytdlp_bin()] + _YTDLP_BASE_ARGS + ["-j", "--no-playlist", url]
         result = _run_yt_dlp(cmd, timeout=60)
         if result.returncode != 0:
             raise RuntimeError(result.stderr.strip().splitlines()[-1])
-        info = json.loads(result.stdout)
-        video_title = sanitize_title(info.get("title", ""))
-        video_duration = info.get("duration")
-        video_thumbnail_url = info.get("thumbnail")
-        logging.info(f"Video title: {video_title}")
-        logging.info(f"Original video duration: {video_duration} seconds")
-        logging.info(f"Thumbnail URL: {video_thumbnail_url}")
+        raw = json.loads(result.stdout)
+        info = {
+            "title": sanitize_title(raw.get("title", "")),
+            "duration": raw.get("duration"),
+            "thumbnail_url": raw.get("thumbnail"),
+            "uploader_id": raw.get("uploader_id") or raw.get("channel") or "unknown",
+            "video_id": raw.get("id"),
+            "was_live": bool(raw.get("was_live")),
+        }
+        logging.info(f"Video title: {info['title']}")
+        logging.info(f"Original video duration: {info['duration']} seconds")
+        logging.info(f"Thumbnail URL: {info['thumbnail_url']}")
+        return info
     except Exception as e:
         logging.error(f"Error extracting information from video: {e}")
-    return video_title, video_duration, video_thumbnail_url
+        return None
 
 
-def scrap_audio(url, channel):
-    video_title, video_duration, video_thumbnail_url = grab_video_info(url)
-    if video_title != "":
+def scrap_audio(url, channel=None):
+    """Download the audio of `url` as an MP3 into RIPS_PATH, tag it, verify its duration
+    and move it to TARGET_PATH. `channel` is the filename/tag prefix; when omitted the
+    uploader handle reported by yt-dlp is used (on-demand URL rips)."""
+    info = grab_video_info(url)
+    if info and info["title"] != "":
+        video_title = info["title"]
+        video_duration = info["duration"]
+        video_thumbnail_url = info["thumbnail_url"]
+        if channel is None:
+            channel = info["uploader_id"]
         logging.info("Converting video to mp3 file")
         scraps_dir = config["RIPS_PATH"]
         if not os.path.exists(scraps_dir):
@@ -243,7 +286,10 @@ def scrap_audio(url, channel):
                 "video_title": video_title,
                 "video_duration": video_duration,
                 "video_thumbnail_url": video_thumbnail_url,
-                "audio_filename": audio_filename_ext
+                "audio_filename": audio_filename_ext,
+                "channel": channel,
+                "video_id": info["video_id"],
+                "media_type": "STREAM" if info["was_live"] else "VIDEO",
             }
         else:
             logging.error(f"Mismatch: video is {video_duration}s, audio is {audio_duration}s")

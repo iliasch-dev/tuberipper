@@ -58,16 +58,16 @@ def is_scraping():
 
 
 def kill_all():
-    """Force-terminate any running Playwright/Chromium and yt-dlp processes.
+    """Force-terminate any running Playwright/Chromium, yt-dlp and ffmpeg processes.
     The scrape's own try/finally releases _scrape_lock once its Playwright/subprocess
     calls raise as a result — this does not touch the lock directly."""
     killed_any = False
-    for pattern in ("ms-playwright", "yt-dlp"):
+    for pattern in ("ms-playwright", "yt-dlp", "ffmpeg"):
         result = subprocess.run(["pkill", "-9", "-f", pattern], capture_output=True)
         if result.returncode == 0:
             killed_any = True
     if killed_any:
-        logger.warning("Manual kill triggered — terminated running Playwright/yt-dlp processes")
+        logger.warning("Manual kill triggered — terminated running Playwright/yt-dlp/ffmpeg processes")
         return {"ok": True, "message": "Killed running scraper process(es)"}
     logger.info("Manual kill triggered — no matching processes were running")
     return {"ok": False, "message": "Nothing was running"}

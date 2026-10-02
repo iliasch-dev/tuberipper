@@ -6,6 +6,7 @@ import time
 import logging
 import shutil
 
+import signal
 import subprocess
 import eyed3
 import requests
@@ -187,12 +188,26 @@ def sanitize_title(name, replace_with="_", ascii_only=False):
 _BOT_CHECK_MARKER = "Sign in to confirm you"
 
 
+def _run_killable(cmd, timeout):
+    """subprocess.run() equivalent that, on timeout, kills the whole process group —
+    yt-dlp hands downloads to an ffmpeg child that would otherwise outlive it."""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            text=True, start_new_session=True)
+    try:
+        stdout, stderr = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(proc.pid, signal.SIGKILL)
+        proc.communicate()
+        raise
+    return subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+
+
 def _run_yt_dlp(cmd, timeout, retries=2, backoff=12):
     """YouTube's bot-check is intermittent even with valid cookies — a retry often
     succeeds where the previous attempt was flagged, so only retry on that specific error."""
     attempt = 0
     while True:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        result = _run_killable(cmd, timeout)
         if result.returncode == 0 or attempt >= retries or _BOT_CHECK_MARKER not in result.stderr:
             return result
         attempt += 1
@@ -227,6 +242,7 @@ def grab_video_info(url):
             "uploader_id": raw.get("uploader_id") or raw.get("channel") or "unknown",
             "video_id": raw.get("id"),
             "was_live": bool(raw.get("was_live")),
+            "live_status": raw.get("live_status"),
         }
         logging.info(f"Video title: {info['title']}")
         logging.info(f"Original video duration: {info['duration']} seconds")
@@ -242,6 +258,11 @@ def scrap_audio(url, channel=None):
     and move it to TARGET_PATH. `channel` is the filename/tag prefix; when omitted the
     uploader handle reported by yt-dlp is used (on-demand URL rips)."""
     info = grab_video_info(url)
+    # A live/upcoming/still-processing stream can't be ripped yet — yt-dlp would just
+    # record it indefinitely. Skip it; it gets picked up on a later run once it's a VOD.
+    if info and info["live_status"] in ("is_live", "is_upcoming", "post_live"):
+        logging.info(f"Skipping {url}: stream is {info['live_status']}, will retry on a later run")
+        return None
     if info and info["title"] != "":
         video_title = info["title"]
         video_duration = info["duration"]

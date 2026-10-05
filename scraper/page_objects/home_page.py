@@ -59,6 +59,8 @@ class HomePage:
     # YouTube also uses shelf-based layouts (ytd-rich-shelf-renderer) and compact lists on some channels.
     def _channel_grid_locator(self):
         return self.page.locator(
+            "#primary yt-lockup-view-model a.ytLockupViewModelContentImage[href*='watch?v='], "
+            "yt-lockup-view-model a[href*='watch?v='], "
             "#primary ytd-rich-grid-media a#thumbnail[href*='watch?v='], "
             "ytd-rich-grid-media a#thumbnail[href*='watch?v='], "
             "ytd-grid-video-renderer a#thumbnail[href*='watch?v='], "
@@ -72,7 +74,10 @@ class HomePage:
         )
 
     def _first_video_link_locator(self):
+        # Current layout: tiles are yt-lockup-view-model with a.ytLockupViewModelContentImage; a#thumbnail is legacy.
         return self.page.locator(
+            "#primary yt-lockup-view-model a.ytLockupViewModelContentImage[href*='watch?v='], "
+            "yt-lockup-view-model a[href*='watch?v='], "
             "#primary ytd-rich-grid-media a#thumbnail[href*='watch?v='], "
             "ytd-rich-grid-media a#thumbnail[href*='watch?v='], "
             "ytd-grid-video-renderer a#thumbnail[href*='watch?v='], "
@@ -82,7 +87,10 @@ class HomePage:
         )
 
     def _first_column_row_thumbnail_locator(self):
-        return self.page.locator("a#thumbnail img.ytCoreImageHost")
+        return self.page.locator(
+            "yt-lockup-view-model a.ytLockupViewModelContentImage img.ytCoreImageHost, "
+            "a#thumbnail img.ytCoreImageHost"
+        )
 
     def _live_ring_locator(self):
         return self.page.locator(".yt-spec-avatar-shape--live-ring")

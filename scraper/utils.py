@@ -258,9 +258,10 @@ def scrap_audio(url, channel=None):
     and move it to TARGET_PATH. `channel` is the filename/tag prefix; when omitted the
     uploader handle reported by yt-dlp is used (on-demand URL rips)."""
     info = grab_video_info(url)
-    # A live/upcoming/still-processing stream can't be ripped yet — yt-dlp would just
-    # record it indefinitely. Skip it; it gets picked up on a later run once it's a VOD.
-    if info and info["live_status"] in ("is_live", "is_upcoming", "post_live"):
+    # A live/upcoming stream can't be ripped yet — yt-dlp would just record it indefinitely.
+    # Skip it; it gets picked up on a later run. post_live (ended, YouTube still processing
+    # the VOD — can last hours/days) is rippable: the full DASH fragment set is already served.
+    if info and info["live_status"] in ("is_live", "is_upcoming"):
         logging.info(f"Skipping {url}: stream is {info['live_status']}, will retry on a later run")
         return None
     if info and info["title"] != "":
@@ -279,6 +280,8 @@ def scrap_audio(url, channel=None):
         try:
             cmd = [_ytdlp_bin()] + _YTDLP_BASE_ARGS + [
                 "-f", "bestaudio/best",
+                # post_live streams come as thousands of 5s DASH fragments; sequential fetch can blow the timeout
+                "--concurrent-fragments", "8",
                 "-x", "--audio-format", "mp3", "--audio-quality", "192K",
                 "-o", os.path.join(scraps_dir, f"{audio_filename}.%(ext)s"),
                 url,
@@ -293,7 +296,8 @@ def scrap_audio(url, channel=None):
         embed_thumbnail(os.path.join(scraps_dir, audio_filename_ext), thumbnail_image, video_title, video_title, channel)
         audio_duration = get_audio_duration_ffprobe(os.path.join(scraps_dir, audio_filename_ext))
         logging.info(f"Downloaded MP3 duration: {audio_duration} seconds")
-        duration_tolerance = 10
+        # post_live DASH drops the trailing partial fragment (~5s), so allow a bit more slack there
+        duration_tolerance = 15 if info["live_status"] == "post_live" else 10
         if abs(video_duration - audio_duration) <= duration_tolerance:
             logging.info("Durations match!")
             target_dir = config["TARGET_PATH"]

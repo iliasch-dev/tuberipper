@@ -58,7 +58,7 @@ class ActionYoutube:
                 elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                     logging.info(f"Stream with video id:{video_id} not scrapped, proceeding to scrap stream")
                     url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
-                    result = utils.scrap_audio(url, channel['channel'])
+                    result = utils.scrap_audio(url, channel['channel'], channel['exclusions'])
                     if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                         logging.info("Saving rip data in DB")
                         db_client.insert_rip_record(
@@ -83,7 +83,7 @@ class ActionYoutube:
             elif not db_client.check_video_id_exists(self.db_conn, video_id, Format.AUDIO.value):
                 logging.info(f"Video with video id:{video_id} not scrapped, proceeding to scrap video")
                 url = self.config["YOUTUBE_URL"] + "watch?v=" + video_id
-                result = utils.scrap_audio(url, channel['channel'])
+                result = utils.scrap_audio(url, channel['channel'], channel['exclusions'])
                 if result is not None and all(value not in [None, "", [], {}, set()] for value in result.values()):
                     logging.info("Saving rip data in DB")
                     db_client.insert_rip_record(

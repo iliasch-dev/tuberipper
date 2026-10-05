@@ -55,6 +55,7 @@ def _migrate(conn):
             cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS run_count INTEGER NOT NULL DEFAULT 0")
             cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP")
             cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP")
+            cur.execute("ALTER TABLE channels ADD COLUMN IF NOT EXISTS exclusion TEXT NOT NULL DEFAULT ''")
             conn.commit()
     except psycopg2.Error as e:
         conn.rollback()
@@ -91,16 +92,23 @@ def _create_table(conn, create_table_sql):
         logging.error(f'Error occurred: {e}')
 
 
+def parse_exclusions(raw):
+    """Stored exclusion string -> list of lower-cased terms for case-insensitive matching."""
+    return [t.lower() for t in utils.parse_exclusion_terms(raw)]
+
+
+def _channel_from_record(record):
+    return {"channel": record[0], "scrap_streams": record[1], "scrap_videos": record[2],
+            "exclusions": parse_exclusions(record[3])}
+
+
 def get_all_channels(conn):
     try:
         cursor = conn.cursor()
-        query = "SELECT channel, scrap_streams, scrap_videos FROM channels"
+        query = "SELECT channel, scrap_streams, scrap_videos, exclusion FROM channels"
         cursor.execute(query)
         records = cursor.fetchall()
-        channel_list = [
-            {"channel": record[0], "scrap_streams": record[1], "scrap_videos": record[2]}
-            for record in records
-        ]
+        channel_list = [_channel_from_record(record) for record in records]
         cursor.close()
         return channel_list
     except psycopg2.Error as e:
@@ -111,13 +119,13 @@ def get_all_channels(conn):
 def get_channel_by_id(conn, channel_id):
     try:
         cursor = conn.cursor()
-        query = "SELECT channel, scrap_streams, scrap_videos FROM channels WHERE id = %s"
+        query = "SELECT channel, scrap_streams, scrap_videos, exclusion FROM channels WHERE id = %s"
         cursor.execute(query, (channel_id,))
         record = cursor.fetchone()
         cursor.close()
         if record is None:
             return None
-        return {"channel": record[0], "scrap_streams": record[1], "scrap_videos": record[2]}
+        return _channel_from_record(record)
     except psycopg2.Error as e:
         logging.error(f"Error fetching channel {channel_id}: {e}")
         return None

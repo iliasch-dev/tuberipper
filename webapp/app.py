@@ -75,6 +75,7 @@ def ensure_tables():
     cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS run_count INTEGER NOT NULL DEFAULT 0")
     cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS last_run_at TIMESTAMP")
     cur.execute("ALTER TABLE schedule ADD COLUMN IF NOT EXISTS next_run_at TIMESTAMP")
+    cur.execute("ALTER TABLE channels ADD COLUMN IF NOT EXISTS exclusion TEXT NOT NULL DEFAULT ''")
     cur.execute("""
         INSERT INTO schedule (id, interval_minutes, enabled) VALUES (1, 60, TRUE)
         ON CONFLICT (id) DO NOTHING
@@ -137,7 +138,7 @@ def logout():
 def index():
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, channel, scrap_streams, scrap_videos FROM channels ORDER BY id")
+    cur.execute("SELECT id, channel, scrap_streams, scrap_videos, exclusion FROM channels ORDER BY id")
     channels = cur.fetchall()
     cur.execute("SELECT interval_minutes, enabled, run_count, last_run_at, next_run_at FROM schedule WHERE id = 1")
     schedule = cur.fetchone()
@@ -260,6 +261,21 @@ def update_channel(channel_id):
     cur.close()
     conn.close()
     return ('', 204)
+
+
+@app.route('/exclusion/<int:channel_id>', methods=['POST'])
+@_require_login
+def update_exclusion(channel_id):
+    from flask import jsonify
+    from scraper.utils import parse_exclusion_terms, format_exclusion_terms
+    exclusion = format_exclusion_terms(parse_exclusion_terms(request.form.get('exclusion', '')))
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("UPDATE channels SET exclusion = %s WHERE id = %s", (exclusion, channel_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({'ok': True, 'exclusion': exclusion})
 
 
 @app.route('/scrape/<int:channel_id>', methods=['POST'])

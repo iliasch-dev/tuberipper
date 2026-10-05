@@ -14,7 +14,7 @@
       font-family: 'Segoe UI', system-ui, sans-serif;
       min-height: 100vh;
       padding: 1.5rem 1rem;
-      max-width: 1100px;
+      max-width: 1300px;
       margin: 0 auto;
     }
 
@@ -339,6 +339,42 @@
     }
 
     .btn-scrape:hover { background: #102a10; border-color: #44cc44; }
+
+    /* Exclusion words */
+    .exclusion-cell { display: flex; gap: 0.35rem; align-items: center; }
+
+    .exclusion-cell input[type="text"] {
+      flex: 1;
+      min-width: 110px;
+      background: #131722;
+      border: 1px solid #2b3242;
+      color: #ccd3e0;
+      padding: 0.25rem 0.5rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .exclusion-cell input[type="text"]:focus { border-color: #ff4444; }
+    .exclusion-cell input[type="text"]::placeholder { color: #454e60; }
+
+    .channel-actions { white-space: nowrap; }
+
+    .btn-exclusion {
+      background: transparent;
+      border: 1px solid #2b3242;
+      color: #838da3;
+      padding: 0.25rem 0.6rem;
+      border-radius: 5px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-exclusion:hover:not(:disabled) { color: #ccd3e0; border-color: #454e60; }
+    .btn-exclusion:disabled { opacity: 0.4; cursor: default; }
     .btn-scrape:disabled { opacity: 0.6; cursor: default; }
 
     /* Add form */
@@ -609,11 +645,12 @@
             <th>Channel</th>
             <th>Streams</th>
             <th>Videos</th>
+            <th>Exclusion</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          {% for id, channel, scrap_streams, scrap_videos in channels %}
+          {% for id, channel, scrap_streams, scrap_videos, exclusion in channels %}
           <tr>
             <td class="channel-name">{{ channel }}</td>
 
@@ -642,6 +679,18 @@
             </td>
 
             <td>
+              <div class="exclusion-cell">
+                <input type="text" id="exclusion-{{ id }}" value="{{ exclusion }}"
+                       data-saved="{{ exclusion }}" placeholder="exclusion keywords"
+                       title="Comma-separated; videos whose title contains any of these are skipped"
+                       oninput="exclusionChanged({{ id }})"
+                       onkeydown="if (event.key === 'Enter') saveExclusion({{ id }})">
+                <button type="button" class="btn-exclusion" id="exclusion-btn-{{ id }}"
+                        onclick="saveExclusion({{ id }})" disabled>Save</button>
+              </div>
+            </td>
+
+            <td class="channel-actions">
               <button type="button" class="btn-scrape" onclick="scrapeNow({{ id }}, this)">Scrape</button>
               <form method="POST" action="/delete/{{ id }}"
                     onsubmit="return confirm('Remove {{ channel }}?')" style="display:inline">
@@ -937,6 +986,32 @@
           btn.title = '';
           refreshStats();
         }, 3000));
+    }
+
+    function exclusionChanged(id) {
+      const input = document.getElementById('exclusion-' + id);
+      const btn = document.getElementById('exclusion-btn-' + id);
+      btn.textContent = 'Save';
+      btn.disabled = input.value === input.dataset.saved;
+    }
+
+    function saveExclusion(id) {
+      const input = document.getElementById('exclusion-' + id);
+      const btn = document.getElementById('exclusion-btn-' + id);
+      if (btn.disabled) return;
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      fetch('/exclusion/' + id, { method: 'POST', body: new URLSearchParams({ exclusion: input.value }) })
+        .then(r => r.json())
+        .then(data => {
+          input.value = data.exclusion;
+          input.dataset.saved = data.exclusion;
+          btn.textContent = 'Saved';
+        })
+        .catch(() => {
+          btn.textContent = 'Error';
+          btn.disabled = false;
+        });
     }
 
     function syncAndSubmit(id, changed) {

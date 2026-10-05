@@ -253,10 +253,28 @@ def grab_video_info(url):
         return None
 
 
-def scrap_audio(url, channel=None):
+def parse_exclusion_terms(raw):
+    """Split a comma-delimited exclusion string into terms. A term may be wrapped in
+    double quotes to make it an explicit phrase (e.g. "true ending"), which may itself
+    contain commas. Returns the terms with quotes removed, original case kept."""
+    terms = []
+    for m in re.finditer(r'"([^"]*)"|[^,"]+', raw or ""):
+        term = (m.group(1) if m.group(1) is not None else m.group(0)).strip()
+        if term:
+            terms.append(term)
+    return terms
+
+
+def format_exclusion_terms(terms):
+    """Inverse of parse_exclusion_terms: multi-word terms are shown in quotes."""
+    return ", ".join(f'"{t}"' if any(c in t for c in ' \t,') else t for t in terms)
+
+
+def scrap_audio(url, channel=None, exclusions=None):
     """Download the audio of `url` as an MP3 into RIPS_PATH, tag it, verify its duration
     and move it to TARGET_PATH. `channel` is the filename/tag prefix; when omitted the
-    uploader handle reported by yt-dlp is used (on-demand URL rips)."""
+    uploader handle reported by yt-dlp is used (on-demand URL rips). `exclusions` is a
+    list of lower-cased words; if any appears in the title the video is skipped."""
     info = grab_video_info(url)
     # A live/upcoming stream can't be ripped yet — yt-dlp would just record it indefinitely.
     # Skip it; it gets picked up on a later run. post_live (ended, YouTube still processing
@@ -264,6 +282,12 @@ def scrap_audio(url, channel=None):
     if info and info["live_status"] in ("is_live", "is_upcoming"):
         logging.info(f"Skipping {url}: stream is {info['live_status']}, will retry on a later run")
         return None
+    if info and exclusions:
+        title_lower = info["title"].lower()
+        matched = next((w for w in exclusions if w in title_lower), None)
+        if matched:
+            logging.info(f"Skipping {url}: title '{info['title']}' contains excluded word '{matched}'")
+            return None
     if info and info["title"] != "":
         video_title = info["title"]
         video_duration = info["duration"]

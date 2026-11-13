@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
 
   webapp:
+    init: true   # tini as PID 1: reaps Chromium's orphaned processes (else they pile up as zombies)
     build:
       context: .
       dockerfile: webapp/Dockerfile

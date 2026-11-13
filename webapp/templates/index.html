@@ -622,6 +622,16 @@
     <div class="flash">{{ msg }}</div>
   {% endfor %}
 
+  <!-- Rip by URL -->
+  <div class="card" style="margin-bottom: 0.75rem;">
+    <h2>Rip by URL</h2>
+    <form class="url-form" id="urlForm" onsubmit="return ripUrl(event)">
+      <input type="url" name="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=…" required>
+      <button class="btn-add" type="submit" id="ripUrlBtn">Rip</button>
+    </form>
+    <div class="url-status" id="urlStatus"></div>
+  </div>
+
   <!-- Channels + Scheduler side by side -->
   <div class="main-grid">
 
@@ -740,16 +750,6 @@
       </form>
     </div>
 
-  </div>
-
-  <!-- Rip by URL -->
-  <div class="card" style="margin-bottom: 0.75rem;">
-    <h2>Rip by URL</h2>
-    <form class="url-form" id="urlForm" onsubmit="return ripUrl(event)">
-      <input type="url" name="url" id="urlInput" placeholder="https://www.youtube.com/watch?v=…" required>
-      <button class="btn-add" type="submit" id="ripUrlBtn">Rip</button>
-    </form>
-    <div class="url-status" id="urlStatus"></div>
   </div>
 
   <!-- Latest Rips -->
